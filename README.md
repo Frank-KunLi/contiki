@@ -1,4 +1,13 @@
-The Contiki Operating System
+Contiki CoAPS
+============================
+This fork update the Contiki 3.0 to support (BETA) CoAP Secure (CoAPS).
+Uses TinyDTLS 0.8.2 and er-coap. 
+
+* apps/er-coaps/  - The original er-coap modified for supporting CoAPS
+* apps/tinydtls - The sourcecode of TinyDTLS 0.8.2
+* ipv6/examples/COAPS-IDS - Projects with experiments
+
+Contiki (Original README)
 ============================
 
 [![Build Status](https://travis-ci.org/contiki-os/contiki.svg?branch=release-3-0)](https://travis-ci.org/contiki-os/contiki/branches)
