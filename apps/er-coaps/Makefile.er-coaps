@@ -1,0 +1,6 @@
+er-coaps_src = er-coaps.c er-coaps-engine.c er-coaps-transactions.c      \
+  er-coaps-observe.c er-coaps-separate.c er-coaps-res-well-known-core.c \
+  er-coaps-block1.c er-coaps-observe-client.c
+
+# Erbium will implement the REST Engine
+CFLAGS += -DREST=coap_rest_implementation
