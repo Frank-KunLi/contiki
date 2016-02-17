@@ -44,7 +44,7 @@
 #include "er-coap-engine.h"
 #include "dev/button-sensor.h"
 
-//#define DEBUG 0
+#define DEBUG 1
 #if DEBUG
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
@@ -57,7 +57,8 @@
 #endif
 
 /* FIXME: This server address is hard-coded for Cooja and link-local for unconnected border router. */
-#define SERVER_NODE(ipaddr)   uip_ip6addr(ipaddr, 0xfe80, 0, 0, 0, 0x0212, 0x7402, 0x0002, 0x0202)      /* cooja2 */
+#define SERVER_NODE(ipaddr)   uip_ip6addr(ipaddr, 0xfe80, 0, 0, 0, 0x0200, 0x0000, 0x0000, 0x0003)   
+
 /* #define SERVER_NODE(ipaddr)   uip_ip6addr(ipaddr, 0xbbbb, 0, 0, 0, 0, 0, 0, 0x1) */
 
 //Definidos en contiki/core/*udp*
@@ -91,6 +92,29 @@ client_chunk_handler(void *response)
 
   printf("|%.*s", len, (char *)chunk);
 }
+
+
+/* ************************************************************************* */
+static void
+print_local_addresses(void)
+{
+  int i;
+  uint8_t state;
+
+  PRINTF("Client  IPv6 addresses: ");
+  for(i = 0; i < UIP_DS6_ADDR_NB; i++) {
+    state = uip_ds6_if.addr_list[i].state;
+    if(uip_ds6_if.addr_list[i].isused &&
+       (state == ADDR_TENTATIVE || state == ADDR_PREFERRED)) {
+      PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
+      PRINTF("\n");
+    }
+    
+    /*TODO: This code is nice except by the nature */
+  }
+}
+/* ************************************************************************* */
+
 PROCESS_THREAD(er_example_client, ev, data)
 {
   PROCESS_BEGIN();
@@ -109,6 +133,9 @@ PROCESS_THREAD(er_example_client, ev, data)
   printf("Press a button to request %s\n", service_urls[uri_switch]);
 #endif
 
+  /* Custom testing for the sensors */
+  print_local_addresses();
+  
   while(1) {
     PROCESS_YIELD();
 
@@ -142,7 +169,7 @@ PROCESS_THREAD(er_example_client, ev, data)
       coap_set_header_uri_path(request, service_urls[uri_switch]);
 
       printf("--Requesting %s--\n", service_urls[uri_switch]);
-
+	  printf(" Contacting the server: ");
       PRINT6ADDR(&server_ipaddr);
       PRINTF(" : %u\n", UIP_HTONS(REMOTE_PORT));
 
