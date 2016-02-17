@@ -69,8 +69,7 @@
 #endif
 
 
-#define DEBUG 1
-#if DEBUG
+#if TINYDTLS_DEBUG
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
 #define PRINT6ADDR(addr) PRINTF("[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
@@ -328,7 +327,7 @@ set_global_address(void)
   uip_ipaddr_t ipaddr;
 
   //BLESSING  Neighbor Discovery Protocol!!!
-  uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0, 0, 0, 0);
+  uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0, 0, 0, 3);
   
   uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
   //IPv6 Anycast and that is all, NDP do his magic
@@ -406,6 +405,7 @@ PROCESS_THREAD(coaps_server_example, ev, data)
   coap_register_as_transaction_handler();
 
 
+ PRINTF("DTLS server waiting requests\n");	
   while(1) {
     PROCESS_WAIT_EVENT();
 	//PROCESS_YIELD();

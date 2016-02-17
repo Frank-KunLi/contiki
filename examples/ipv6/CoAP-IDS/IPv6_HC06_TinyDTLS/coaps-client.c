@@ -69,8 +69,7 @@
 #endif /* */ 
 //#include "dtls.h"
 
-#define DEBUG 1
-#if DEBUG
+#if TINYDTLS_DEBUG
 #include <stdio.h>
 #define printf(...) printf(__VA_ARGS__)
 #define PRINT6ADDR(addr) printf("[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
@@ -340,7 +339,7 @@ static void
 set_connection_address(uip_ipaddr_t *ipaddr)
 {
   uip_ip6addr(ipaddr,0xfe80, 0, 0, 0, 0x0200, 0x0000, 0x0000, 0x0003);  
-  uip_ip6addr(&server_ipaddr, 0xfe80, 0, 0, 0, 0x0200, 0x0000, 0x0000, 0x0003);
+//  uip_ip6addr(&server_ipaddr, 0xfe80, 0, 0, 0, 0x0200, 0x0000, 0x0000, 0x0003);
   //FIXME: The #define es por el coap_request_block
 //  #define SERVER_NODE(ipaddr)   uip_ip6addr(ipaddr, 0xfe80, 0, 0, 0, 0x0200, 0x0000, 0x0000, 0x0003)   
 // SERVER_NODE(&server_ipaddr);
