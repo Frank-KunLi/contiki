@@ -50,7 +50,7 @@
 #include "er-coaps-transactions.h"
 
 //TODO RAFS: Why the CoAP Server don't use er-coap-engine?
-//#include "er-coaps-engine.h"
+#include "er-coaps-engine.h"
 #include "dtls.h"
 
 #if PLATFORM_HAS_BUTTON
