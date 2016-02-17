@@ -32,23 +32,30 @@
  * \file
  *      IPv6 HC06 CoAPS (Normal UDP)
  * \author
- *      Raul Armando Fuentes Samaniego <fuentess@telecom...>
+ *      Raul Armando Fuentes Samaniego <fuentess@telecom-sudparis.eu>
  */
 
 
-/*  Basic configuration for the nodes. 
- *  802.15.4 for the framers. 
- *  CSMA/CA for the transmission 
- *  The CC24240 drivers for the signal 
- *  And the default (contikimac)  RDC driver (not stated here) 
- */
+
+
+/* *****************  Lowest Layers   ******************************* */
 
 //#undef NETSTACK_CONF_RADIO
 //#define NETSTACK_CONF_RADIO   cc2420_driver
 
+//The Radio driver (the wireless signal)
 #undef NETSTACK_CONF_FRAMER
 #define NETSTACK_CONF_FRAMER  framer_802154
 
+//The PHY-MAC layer (Radio Duty Cycle)
+#undef NETSTACK_CONF_RDC 
+// #define NETSTACK_CONF_RDC framer_nullmac
+#define NETSTACK_CONF_RDC nullrdc_driver //Saving space
+
+//The MAC layers alternative: nullmac_driver csma_driver
+//but the csma_driver  requires less ROM space 
+#undef  NETSTACK_CONF_MAC
+#define NETSTACK_CONF_MAC     csma_driver
 
 /* 
  * Contikimac requires an small tresshold for the MTU. 
@@ -74,54 +81,73 @@
 #undef SICSLOWPAN_CONF_COMPRESSION
 #define SICSLOWPAN_CONF_COMPRESSION     SICSLOWPAN_COMPRESSION_HC06 
 
-/* 
- * The following are from the CoAP examples
- * No he tomado todos, solo lo que creo que son importantes para el experimento.
- */
-
 /* Disabling TCP on CoAP nodes. */
 #undef UIP_CONF_TCP
 #define UIP_CONF_TCP                   0
 
-
 /* Increase rpl-border-router IP-buffer when using more than 64. */
-//RAFS TODO: Indagar que jodido hace esto 
-#undef REST_MAX_CHUNK_SIZE
-#define REST_MAX_CHUNK_SIZE            48
+//RAFS TODO: DISABLED (no afecta a mis nodos) 
+//#undef REST_MAX_CHUNK_SIZE
+// #define REST_MAX_CHUNK_SIZE            48
 
 
-/* Multiplies with chunk size, be aware of memory constraints. */
-#undef COAP_MAX_OPEN_TRANSACTIONS
-#define COAP_MAX_OPEN_TRANSACTIONS     4
+/* *****************  CoAP && TinyDTLS   ******************************* */
 
 
-/* Pataladas de ahogado ante poca RAM */
-
-#undef PLATFORM_HAS_LEDS
-#define PLATFORM_HAS_LEDS 0
-
-#undef PLATFORM_HAS_LIGHT
-#define PLATFORM_HAS_LIGHT 0
-
-
-/* Filtering .well-known/core per query can be disabled to save space.
+/* For trying to save space */ 
+/* Filtering .well-known/core per query can be disabled to save space. */
 #undef COAP_LINK_FORMAT_FILTERING
 #define COAP_LINK_FORMAT_FILTERING     0
-#undef COAP_PROXY_OPTION_PROCESSING
-#define COAP_PROXY_OPTION_PROCESSING   0  */
+#undef  COAP_PROXY_OPTION_PROCESSING
+#define COAP_PROXY_OPTION_PROCESSING   0
 
 
-#ifdef DTLS_PSK
-/* The PSK information for DTLS */
-/* make sure that default identity and key fit into buffer, i.e.
- * sizeof(PSK_DEFAULT_IDENTITY) - 1 <= PSK_ID_MAXLEN and
- * sizeof(PSK_DEFAULT_KEY) - 1 <= PSK_MAXLEN
+/* WARNING FIXME:  TinyDTLS seems to ignore its own #define once the code 
+ *  has been compiled with ./configure (which is something non linked to
+ *  Contiki).
+ * 
+ * 	FIXME: By strange reason the NULL ciphersutie is not supported 
+ *  by TinyDTLS even if its already defined in the code.
+ */
+
+/** Defined to 1 if tinydtls is built with support for ECC */
+#undef DTLS_ECC
+#define DTLS_ECC 0
+
+/** Defined to 1 if tinydtls is built with support for PSK */
+#undef DTLS_PSK
+#define DTLS_PSK 0
+
+
+
+/* *****************  Specific of the motes   ******************************* */ 
+
+/* DANGER: If you change from wismote to any other validate the values here. 
+		   The objective is save ROM & RAM space.
+		   Although I believe the DANGER is too low or null.
 */
 
-#define PSK_ID_MAXLEN 32
-#define PSK_MAXLEN 32
-#define PSK_DEFAULT_IDENTITY "Client_identity"
-#define PSK_DEFAULT_KEY      "secretPSK"
-#endif /* DTLS_PSK */
+#undef PLATFORM_HAS_BUTTON
+#define PLATFORM_HAS_BUTTON 1
 
+#undef PLATFORM_HAS_LEDS
+#define PLATFORM_HAS_LEDS 1
+
+#undef PLATFORM_HAS_LIGHT
+#define PLATFORM_HAS_LIGHT 1
+
+
+/* *****************  CUSTOM   ******************************* */
+
+/*RAFS: We don't always want the tinyDTLS debug */
+#undef TINYDTLS_DEBUG //Paranoia porque me la invente yo
+#define TINYDTLS_DEBUG 1
+
+/* All the following are for trying to save space */ 
+#undef PROCESS_CONF_NO_POCESS_NAMES
+#define PROCESS_CONF_NO_POCESS_NAMES 1
+
+/* er-rest  hace un poco de uso de DEBUG*/ 
+#undef DEBUG
+#define DEBUG 1 
 
