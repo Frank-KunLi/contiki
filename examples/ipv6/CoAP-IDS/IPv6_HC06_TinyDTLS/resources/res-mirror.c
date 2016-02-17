@@ -38,7 +38,7 @@
 
 #include <string.h>
 #include "rest-engine.h"
-#include "er-coap.h"
+#include "er-coaps.h"
 
 #define DEBUG 0
 #if DEBUG
