@@ -29,12 +29,9 @@ PROJECT_SOURCEFILES += $(REST_RESOURCES_FILES)
 SMALL=1
 
 # REST Engine shall use Erbium CoAP implementation
-APPS += coap-dtls
+APPS += er-coaps
 APPS += rest-engine
 APPS += tinydtls/aes tinydtls/sha2 tinydtls/ecc tinydtls
-
-
-
 
 
 # optional rules to get assembly
