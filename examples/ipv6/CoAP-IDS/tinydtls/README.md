@@ -57,8 +57,9 @@
   ./configure --with-contiki  --target=sky --without-ecc --without-debug --build=x86_64-linux-gnu
   ./configure --with-contiki  --target=sky --without-ecc --without-debug 
   ./configure  --build=x86_64-linux-gnu
+  ./configure  --build=x86_64-linux-gnu --without-ecc --without-psk --without-debug 
   ./configure  --build=x86_64-linux-gnu --without-ecc
-  ./configure  --build=x86_64-linux-gnu --without-ecc
+  ./configure --with-contiki  --without-debug --without-ecc
 
   NOTA: AL parecer TLS_NULL_WITH_NULL_NULL no es aceptado en el cliente ni server
   PERO esta en el codigo
