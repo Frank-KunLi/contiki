@@ -2,22 +2,19 @@
 # the reason behind this custom (instead of the original) is due the changes  
 #between Contiki 2.6 and the Contiki 3.0
 
-all: dtls-client #dtls-server
+all: dtls-client dtls-server
 
 CONTIKI=../../../..
 
-#NOTE: Esto es mandatorio ? Creo que no, solo para definir cosas extras.
-#CFLAGS += -DPROJECT_CONF_H=\"project-conf.h\"
+CFLAGS += -DPROJECT_CONF_H=\"project-conf.h\"
 
 APPS += tinydtls/aes tinydtls/sha2 tinydtls/ecc tinydtls
 #APPS += tinydtls/aes  tinydtls/ecc tinydtls
 
-#APPS += er-coap
 CONTIKI_WITH_IPV6 = 1
 include $(CONTIKI)/Makefile.include
 
 
-SMALL=1
 
 # Thos are lines of TinyDTLS  they have the following legend: 
 # "usually, you should not need changing anything beyond this line"

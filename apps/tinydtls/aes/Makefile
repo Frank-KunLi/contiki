@@ -30,7 +30,7 @@ VERSION:=0.8.2
 SHELL = /bin/sh
 MKDIR = mkdir
 
-abs_builddir = /home/user/contiki/apps/tinydtls/aes
+abs_builddir = /home/user/contiki-CoApS/apps/tinydtls/aes
 top_builddir = ..
 top_srcdir:= ..
 

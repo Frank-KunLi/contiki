@@ -31,12 +31,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #ifdef HAVE_ASSERT_H
-# include <assert.h>
+#include <assert.h>
 #endif
-/*#ifndef WITH_CONTIKI
+#ifndef WITH_CONTIKI
 #include <stdlib.h>
 #include "uthash.h"
-#endif *//* WITH_CONTIKI */
+#endif /* WITH_CONTIKI */
 
 #include "debug.h"
 #include "numeric.h"

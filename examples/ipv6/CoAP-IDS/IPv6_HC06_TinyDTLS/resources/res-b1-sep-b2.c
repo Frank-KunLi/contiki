@@ -38,11 +38,11 @@
 
 #include <string.h>
 #include "rest-engine.h"
-#include "er-coap-block1.h"
-#include "er-coap-separate.h"
-#include "er-coap-transactions.h"
+#include "er-coaps-block1.h"
+#include "er-coaps-separate.h"
+#include "er-coaps-transactions.h"
 
-static void res_post_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
+static void res_post_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset, struct dtls_context_t *ctx, session_t *dst);
 SEPARATE_RESOURCE(res_b1_sep_b2, "title=\"Block1 + Separate + Block2 demo\"", NULL, res_post_handler, NULL, NULL, NULL);
 
 #define MAX_DATA_LEN 256
@@ -52,7 +52,7 @@ static size_t big_msg_len = 0;
 static coap_separate_t request_metadata;
 
 static void
-res_post_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
+res_post_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset, struct dtls_context_t *ctx, session_t *dst)
 {
   /* Example allows only one request on time. There are no checks for multiply access !!! */
   if(*offset == 0) {
@@ -64,7 +64,8 @@ res_post_handler(void *request, void *response, uint8_t *buffer, uint16_t prefer
       return;
     }
     /* Last block was received. */
-    coap_separate_accept(request, &request_metadata);
+	//TinyDTLS
+    coap_separate_accept(request, &request_metadata, ctx, dst);
 
     /* Need Time for calculation now */
     uint32_t i;

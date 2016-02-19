@@ -38,10 +38,10 @@
 
 #include <string.h>
 #include "rest-engine.h"
-#include "er-coap-separate.h"
-#include "er-coap-transactions.h"
+#include "er-coaps-separate.h"
+#include "er-coaps-transactions.h"
 
-static void res_get_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
+static void res_get_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset, struct dtls_context_t *ctx, session_t *dst);
 static void res_resume_handler(void);
 
 SEPARATE_RESOURCE(res_separate,
@@ -68,7 +68,8 @@ static uint8_t separate_active = 0;
 static application_separate_store_t separate_store[COAP_MAX_OPEN_SEPARATE];
 
 static void
-res_get_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
+res_get_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset, 
+				struct dtls_context_t *ctx, session_t *dst )
 {
   /*
    * Example allows only one open separate response.
@@ -80,7 +81,8 @@ res_get_handler(void *request, void *response, uint8_t *buffer, uint16_t preferr
     ++separate_active;
 
     /* Take over and skip response by engine. */
-    coap_separate_accept(request, &separate_store->request_metadata);
+	//TinyDTLS
+    coap_separate_accept(request, &separate_store->request_metadata, ctx, dst);
     /* Be aware to respect the Block2 option, which is also stored in the coap_separate_t. */
 
     /*

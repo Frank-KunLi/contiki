@@ -43,7 +43,7 @@
  * @{
  */
 
-#ifdef WITH_CONTIKI //RAFS: 
+#ifdef WITH_CONTIKI
 #include "sys/clock.h"
 #else /* WITH_CONTIKI */
 #include <time.h>

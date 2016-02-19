@@ -31,23 +31,45 @@
 
 /**
  * \file
- *      Erbium (Er) REST Engine example.
+ *       CoAP Secure (CoAPS) server example.
  * \author
- *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
+ *      Raul Fuentes Samaniego <fuentess@telecom-sudparis.eu>
+ *  \note 
+ * 		This is an server  model which will accept any request from clients.
+ * 		set_global_address() requires attention if the server IPv6
+ * 		addresses will be modified.
  */
 
-#include <stdio.h>
+//#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "contiki.h"
 #include "contiki-net.h"
 #include "rest-engine.h"
 
+#include "er-coaps-transactions.h"
+
+//TODO RAFS: Why the CoAP Server don't use er-coap-engine?
+#include "er-coaps-engine.h"
+#include "dtls.h"
+
 #if PLATFORM_HAS_BUTTON
 #include "dev/button-sensor.h"
 #endif
 
-#if DEBUG
+#include "tinydtls.h"
+#include "net/ip/uip-debug.h"
+
+#ifdef TINYDTLS_DEBUG
+#include "debug.h" 
+#endif
+
+#ifdef ENABLE_POWERTRACE
+#include "powertrace.h"
+#endif
+
+
+#if TINYDTLS_DEBUG
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
 #define PRINT6ADDR(addr) PRINTF("[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
@@ -78,32 +100,272 @@ extern resource_t res_leds, res_toggle;
 #include "dev/light-sensor.h"
 extern resource_t res_light;
 #endif
-/*
-#if PLATFORM_HAS_BATTERY
-#include "dev/battery-sensor.h"
-extern resource_t res_battery;
-#endif
-#if PLATFORM_HAS_RADIO
-#include "dev/radio-sensor.h"
-extern resource_t res_radio;
-#endif
-#if PLATFORM_HAS_SHT11
-#include "dev/sht11/sht11-sensor.h"
-extern resource_t res_sht11;
-#endif
-*/
 
-PROCESS(er_example_server, "Erbium Example Server");
-AUTOSTART_PROCESSES(&er_example_server);
 
-PROCESS_THREAD(er_example_server, ev, data)
+#define LISTENING_PORT     UIP_HTONS(20220)
+
+
+#define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
+#define UIP_UDP_BUF  ((struct uip_udp_hdr *)&uip_buf[UIP_LLIPH_LEN])
+
+#define MAX_PAYLOAD_LEN 120
+
+static struct uip_udp_conn *server_conn;
+
+static dtls_context_t *dtls_context;
+static uint8_t dtls_connected = 0;
+
+
+static const unsigned char ecdsa_priv_key[] = {
+			0xD9, 0xE2, 0x70, 0x7A, 0x72, 0xDA, 0x6A, 0x05,
+			0x04, 0x99, 0x5C, 0x86, 0xED, 0xDB, 0xE3, 0xEF,
+			0xC7, 0xF1, 0xCD, 0x74, 0x83, 0x8F, 0x75, 0x70,
+			0xC8, 0x07, 0x2D, 0x0A, 0x76, 0x26, 0x1B, 0xD4};
+
+static const unsigned char ecdsa_pub_key_x[] = {
+			0xD0, 0x55, 0xEE, 0x14, 0x08, 0x4D, 0x6E, 0x06,
+			0x15, 0x59, 0x9D, 0xB5, 0x83, 0x91, 0x3E, 0x4A,
+			0x3E, 0x45, 0x26, 0xA2, 0x70, 0x4D, 0x61, 0xF2,
+			0x7A, 0x4C, 0xCF, 0xBA, 0x97, 0x58, 0xEF, 0x9A};
+
+static const unsigned char ecdsa_pub_key_y[] = {
+			0xB4, 0x18, 0xB6, 0x4A, 0xFE, 0x80, 0x30, 0xDA,
+			0x1D, 0xDC, 0xF4, 0xF4, 0x2E, 0x2F, 0x26, 0x31,
+			0xD0, 0x43, 0xB1, 0xFB, 0x03, 0xE2, 0x2F, 0x4D,
+			0x17, 0xDE, 0x43, 0xF9, 0xF9, 0xAD, 0xEE, 0x70};
+
+
+/*---------------------------------------------------------------------------*/
+
+static void
+print_local_addresses(void)
+{
+  int i;
+  uint8_t state;
+
+  PRINTF("Server IPv6 addresses: \n");
+  for(i = 0; i < UIP_DS6_ADDR_NB; i++) {
+    state = uip_ds6_if.addr_list[i].state;
+    if(uip_ds6_if.addr_list[i].isused &&
+       (state == ADDR_TENTATIVE || state == ADDR_PREFERRED)) {
+      PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
+      PRINTF("\n");
+    }
+  }
+}
+
+
+static int
+read_from_peer(struct dtls_context_t *ctx, 
+	       session_t *session, uint8 *data, size_t len) {
+  
+	/* Set upip length*/
+  uip_len = len;
+  memmove(uip_appdata, data, len);
+  coap_receive(ctx, session);
+  return 0;
+
+}
+
+static int
+send_to_peer(struct dtls_context_t *ctx, 
+	     session_t *session, uint8 *data, size_t len) {
+
+  struct uip_udp_conn *conn = (struct uip_udp_conn *)dtls_get_app_data(ctx);
+
+  uip_ipaddr_copy(&conn->ripaddr, &session->addr);
+  conn->rport = session->port;
+  
+  uip_udp_packet_send(conn, data, len);
+
+  /* Restore server connection to allow data from any node */
+  memset(&conn->ripaddr, 0, sizeof(server_conn->ripaddr));
+  memset(&conn->rport, 0, sizeof(conn->rport));
+
+  return len;
+
+}
+/*---------------------------------------------------------------------------*/
+
+#ifdef DTLS_PSK
+/* This function is the "key store" for tinyDTLS. It is called to
+ * retrieve a key for the given identity within this particular
+ * session. */
+static int
+get_psk_info(struct dtls_context_t *ctx, const session_t *session,
+	     dtls_credentials_type_t type,
+	     const unsigned char *id, size_t id_len,
+	     unsigned char *result, size_t result_length) {
+
+  struct keymap_t {
+    unsigned char *id;
+    size_t id_length;
+    unsigned char *key;
+    size_t key_length;
+  } psk[3] = {
+    { (unsigned char *)"Client_identity", 15,
+      (unsigned char *)"secretPSK", 9 },
+    { (unsigned char *)"default identity", 16,
+      (unsigned char *)"\x11\x22\x33", 3 },
+    { (unsigned char *)"\0", 2,
+      (unsigned char *)"", 1 }
+  };
+
+  if (type != DTLS_PSK_KEY) {
+    return 0;
+  }
+
+  if (id) {
+    int i;
+    for (i = 0; i < sizeof(psk)/sizeof(struct keymap_t); i++) {
+      if (id_len == psk[i].id_length && memcmp(id, psk[i].id, id_len) == 0) {
+	if (result_length < psk[i].key_length) {
+	  dtls_warn("buffer too small for PSK");
+	  return dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
+	}
+
+	memcpy(result, psk[i].key, psk[i].key_length);
+	return psk[i].key_length;
+      }
+    }
+  }
+
+  return dtls_alert_fatal_create(DTLS_ALERT_DECRYPT_ERROR);
+}
+#endif /* DTLS_PSK */
+
+#ifdef DTLS_ECC
+static int
+get_ecdsa_key(struct dtls_context_t *ctx,
+	      const session_t *session,
+	      const dtls_ecdsa_key_t **result) {
+  static const dtls_ecdsa_key_t ecdsa_key = {
+    .curve = DTLS_ECDH_CURVE_SECP256R1,
+    .priv_key = ecdsa_priv_key,
+    .pub_key_x = ecdsa_pub_key_x,
+    .pub_key_y = ecdsa_pub_key_y
+  };
+
+  *result = &ecdsa_key;
+  return 0;
+}
+
+static int
+verify_ecdsa_key(struct dtls_context_t *ctx,
+		 const session_t *session,
+		 const unsigned char *other_pub_x,
+		 const unsigned char *other_pub_y,
+		 size_t key_size) {
+  return 0;
+}
+#endif /* DTLS_ECC */
+
+static void
+dtls_handle_read(dtls_context_t *ctx) {
+  session_t session;
+
+  if(uip_newdata()) {
+    uip_ipaddr_copy(&session.addr, &UIP_IP_BUF->srcipaddr);
+    session.port = UIP_UDP_BUF->srcport;
+    session.size = sizeof(session.addr) + sizeof(session.port);
+    
+    dtls_handle_message(ctx, &session, uip_appdata, uip_datalen());
+  }
+}
+
+/*---------------------------------------------------------------------------*/
+int
+on_event(struct dtls_context_t *ctx, session_t *session, dtls_alert_level_t level,
+              unsigned short code) {
+  if (code == DTLS_EVENT_CONNECTED) {
+    dtls_connected = 1;
+    PRINTF("DTLS-Server Connected\n");
+  }
+  return 0;
+}
+/*---------------------------------------------------------------------------*/
+
+void
+init_dtls() {
+  static dtls_handler_t cb = {
+    .write = send_to_peer,
+    .read  = read_from_peer,
+    .event = on_event,
+#ifdef DTLS_PSK
+    .get_psk_info = get_psk_info,
+#endif /* DTLS_PSK */
+#ifdef DTLS_ECC
+    .get_ecdsa_key = get_ecdsa_key,
+    .verify_ecdsa_key = verify_ecdsa_key
+#endif /* DTLS_ECC */
+  };
+
+
+  PRINTF("DTLS server (%s) started\n", PACKAGE_STRING);
+
+  //FIXME: tmp_addr is a structure only defined for the cc2520
+  //Lithe no usa esta linea. Queda en revision
+  //memcpy(&uip_lladdr.addr, &tmp_addr.u8, 8);
+
+
+
+  server_conn = udp_new(NULL, 0, NULL);
+  udp_bind(server_conn, LISTENING_PORT);
+
+  //FIXME
+  dtls_set_log_level(DTLS_LOG_DEBUG);
+
+  dtls_context = dtls_new_context(server_conn);
+  if (dtls_context)
+    dtls_set_handler(dtls_context, &cb);
+}
+
+/*---------------------------------------------------------------------------*/
+/* Este es mas importante de lo que parece. */
+static void
+set_global_address(void)
+{
+  uip_ipaddr_t ipaddr;
+
+  //BLESSING  Neighbor Discovery Protocol!!!
+  uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0, 0, 0, 0);
+  
+  uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
+  //IPv6 Anycast and that is all, NDP do his magic
+  uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
+  
+  
+  //TODO: The servers  can auto-conf but adversiment the address should be good.
+}
+/*---------------------------------------------------------------------------*/
+
+/* NOTE: Similar al cliente, el server tiene dos PRocesos corriendo en paralelo
+         Al menos así esta en Lithe, sin embargo este no es un copy/paste pues 
+         el servidor de Erbium ha cambiado significativamente desde entonces. 
+         
+	TODO: Regresar el server a dos procesos. Probablemente, es multi-threading.
+ */
+
+PROCESS(coaps_server_example, "CoAPS Server Example"); 
+AUTOSTART_PROCESSES(&coaps_server_example);
+
+
+PROCESS_THREAD(coaps_server_example, ev, data)
 {
   PROCESS_BEGIN();
+  //PROCESS_PAUSE(); //??
 
-  PROCESS_PAUSE();
+  set_global_address();
 
-  PRINTF("Starting Erbium Example Server\n");
+  dtls_init();
+  init_dtls();
 
+ 
+  /* TODO: This come from TinyDTLS however is vital for power tracing with Cooja */
+#ifdef ENABLE_POWERTRACE
+  powertrace_start(CLOCK_SECOND * 2); 
+#endif  
+  
 #ifdef RF_CHANNEL
   PRINTF("RF channel: %u\n", RF_CHANNEL);
 #endif
@@ -115,61 +377,63 @@ PROCESS_THREAD(er_example_server, ev, data)
   PRINTF("LL header: %u\n", UIP_LLH_LEN);
   PRINTF("IP+UDP header: %u\n", UIP_IPUDPH_LEN);
   PRINTF("REST max chunk: %u\n", REST_MAX_CHUNK_SIZE);
-
-  /* Initialize the REST engine. */
-  rest_init_engine();
+  
+  rest_init_engine(); /* Initialize the REST engine. */
+  print_local_addresses(); 
+  
+  if (!dtls_context) {
+    dsrv_log(LOG_EMERG, "cannot create context\n");
+    PROCESS_EXIT();
+  }
 
   /*
    * Bind the resources to their Uri-Path.
    * WARNING: Activating twice only means alternate path, not two instances!
    * All static variables are the same for each URI path.
+   * RAFS NOTE: Original commented resources were erased for having a minimum.
    */
   rest_activate_resource(&res_hello, "test/hello");
-/*  rest_activate_resource(&res_mirror, "debug/mirror"); */
-/*  rest_activate_resource(&res_chunks, "test/chunks"); */
-/*  rest_activate_resource(&res_separate, "test/separate"); */
-  rest_activate_resource(&res_push, "test/push");
-/*  rest_activate_resource(&res_event, "sensors/button"); */
-/*  rest_activate_resource(&res_sub, "test/sub"); */
-/*  rest_activate_resource(&res_b1_sep_b2, "test/b1sepb2"); */
+//  rest_activate_resource(&res_push, "test/push");
 #if PLATFORM_HAS_LEDS
-/*  rest_activate_resource(&res_leds, "actuators/leds"); */
   rest_activate_resource(&res_toggle, "actuators/toggle");
 #endif
 #if PLATFORM_HAS_LIGHT
   rest_activate_resource(&res_light, "sensors/light"); 
   SENSORS_ACTIVATE(light_sensor);  
 #endif
-/*
-#if PLATFORM_HAS_BATTERY
-  rest_activate_resource(&res_battery, "sensors/battery");  
-  SENSORS_ACTIVATE(battery_sensor);  
-#endif
-#if PLATFORM_HAS_RADIO
-  rest_activate_resource(&res_radio, "sensors/radio");  
-  SENSORS_ACTIVATE(radio_sensor);  
-#endif
-#if PLATFORM_HAS_SHT11
-  rest_activate_resource(&res_sht11, "sensors/sht11");  
-  SENSORS_ACTIVATE(sht11_sensor);  
-#endif
-*/
+  
+  
+  coap_register_as_transaction_handler();
 
-  /* Define application-specific events here. */
+
+ PRINTF("DTLS server waiting requests\n");	
   while(1) {
     PROCESS_WAIT_EVENT();
+	//PROCESS_YIELD();
+	
+	/* TODO: Validate the order of the IF's clauses */ 
+    if(ev == tcpip_event) {
+      dtls_handle_read(dtls_context);
+	  PRINTF("Packet delivered!\n");
 #if PLATFORM_HAS_BUTTON
-    if(ev == sensors_event && data == &button_sensor) {
-      PRINTF("*******BUTTON*******\n");
+    }else if (ev == sensors_event && data == &button_sensor){
+		PRINTF("*******BUTTON*******\n");
 
       /* Call the event_handler for this application-specific event. */
       res_event.trigger();
 
       /* Also call the separate response example handler. */
       res_separate.resume();
-    }
+    
 #endif /* PLATFORM_HAS_BUTTON */
-  }                             /* while (1) */
+		
+	}else if (ev == PROCESS_EVENT_TIMER) {
+		 PRINTF("retransmissions\n");
+      /* retransmissions are handled here */
+      coap_check_transactions();
+    }
+  }
 
   PROCESS_END();
 }
+/*---------------------------------------------------------------------------*/

@@ -39,7 +39,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h> //RAFS NOTE: Creo que este se le escapo 
+#include <assert.h>
 
 #include "ecc.h"
 #include "test_helper.h"

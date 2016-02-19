@@ -29,11 +29,11 @@
 
 #include "dtls_config.h"
 
-//#ifdef HAVE_ASSERT_H
-#include <assert.h>/*
+#ifdef HAVE_ASSERT_H
+#include <assert.h>
 #else
 #define assert(x)
-#endif*/
+#endif
 
 #include "debug.h"
 #include "hmac.h"

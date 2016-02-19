@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2013, Institute for Pervasive Computing, ETH Zurich
- * All rights reserved.
+ * Copyright (c) 2013, Todo
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,36 +30,43 @@
 
 /**
  * \file
- *      Erbium (Er) CoAP client example
+ *      IPv6 HC06 CoAP (Normal UDP)
  * \author
- *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
+ *      Raul Armando Fuentes Samaniego <fuentess@telecom...>
  */
 
-#ifndef __ER_PLUGTEST_H__
-#define __ER_PLUGTEST_H__
+#undef NETSTACK_CONF_RADIO
+#define NETSTACK_CONF_RADIO   cc2420_driver
 
-#if !defined(CONTIKI_TARGET_NATIVE)
-#warning "Should only be compiled for native!"
-#endif
+#undef NETSTACK_CONF_FRAMER
+#define NETSTACK_CONF_FRAMER  framer_802154
 
-#define DEBUG 0
-#if DEBUG
-#include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
-#define PRINT6ADDR(addr) PRINTF("[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
-#define PRINTLLADDR(lladdr) PRINTF("[%02x:%02x:%02x:%02x:%02x:%02x]", (lladdr)->addr[0], (lladdr)->addr[1], (lladdr)->addr[2], (lladdr)->addr[3], (lladdr)->addr[4], (lladdr)->addr[5])
-#else
-#define PRINTF(...)
-#define PRINT6ADDR(addr)
-#define PRINTLLADDR(addr)
-#endif
 
-/* double expansion */
-#define TO_STRING2(x)  # x
-#define TO_STRING(x)  TO_STRING2(x)
 
-#define MAX_PLUGFEST_PAYLOAD 64 + 1       /* +1 for the terminating zero, which is not transmitted */
-#define MAX_PLUGFEST_BODY    2048
-#define CHUNKS_TOTAL         2012
+#undef NETSTACK_CONF_MAC
+#define NETSTACK_CONF_MAC     csma_driver
 
-#endif /* __ER_PLUGTEST_H__ */
+#undef SICSLOWPAN_CONF_COMPRESSION_THRESHOLD
+#define SICSLOWPAN_CONF_COMPRESSION_THRESHOLD     23
+
+
+// This enable 6LoWPAN + 6UDP (Or Contiki equivalent)
+#undef SICSLOWPAN_CONF_COMPRESSION
+#define SICSLOWPAN_CONF_COMPRESSION     SICSLOWPAN_COMPRESSION_HC06 
+
+
+/* Multiplies with chunk size, be aware of memory constraints. */
+#undef COAP_MAX_OPEN_TRANSACTIONS
+#define COAP_MAX_OPEN_TRANSACTIONS     4
+
+
+#undef PLATFORM_HAS_BUTTON
+#define PLATFORM_HAS_BUTTON 1
+
+#undef PLATFORM_HAS_LEDS
+#define PLATFORM_HAS_LEDS 1
+
+#undef DEBUG
+#define DEBUG 1
+
+

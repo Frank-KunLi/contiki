@@ -57,8 +57,6 @@
 #  include "platform-specific/config-minimal-net.h"
 #endif /* CONTIKI_TARGET_MINIMAL_NET */
 
-//RAFS TODO: Native debería ser declarada aqui para insertar  el assert.h 
-
 #endif /* CONTIKI */
 
 #endif /* _PLATFORM_H_ */

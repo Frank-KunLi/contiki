@@ -37,15 +37,7 @@ clock_time_t dtls_clock_offset;
 
 void
 dtls_clock_init(void) {
-	
-	//FIXME RAFS: TinyDTLS no funciona con platform/native 
-	//En parte porque esta no maneja un reloj (clock_init no existe). 
-	
-#if TARGET == 	native
-#warning "Native platform do not have clock_init(void)"
-#else
   clock_init();
-#endif
   dtls_clock_offset = clock_time();
 }
 

@@ -252,7 +252,9 @@ set_connection_address(uip_ipaddr_t *ipaddr)
     PRINTF("UDP client failed to parse address '%s'\n", QUOTEME(UDP_CONNECTION_ADDR));
   }
 #elif UIP_CONF_ROUTER
-  uip_ip6addr(ipaddr,0xaaaa,0,0,0,0x0200,0x0000,0x0000,0x0001);
+  //uip_ip6addr(ipaddr,0xaaaa,0,0,0,0x0200,0x0000,0x0000,0x0001);
+  uip_ip6addr(ipaddr,0xfe80, 0, 0, 0, 0x0200, 0x0000, 0x0000, 0x0002);
+  
 #else
   uip_ip6addr(ipaddr,0xfe80,0,0,0,0x6466,0x6666,0x6666,0x6666);
 #endif /* UDP_CONNECTION_ADDR */
@@ -312,16 +314,27 @@ PROCESS_THREAD(udp_server_process, ev, data)
     PROCESS_EXIT();
   }
 
+  /* Testing*/
+  static struct etimer periodic_timer;
+  #define SEND_INTERVAL		(60 * CLOCK_SECOND)
+  etimer_set(&periodic_timer, SEND_INTERVAL);
   while(1) {
+	  /* Testing */
+	  PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer)); 
+	  try_send(dtls_context, &dst);
+	  etimer_reset(&periodic_timer);
+	  
+	  
     PROCESS_YIELD();
     if(ev == tcpip_event) {
+	  printf("EVENT!");
       dtls_handle_read(dtls_context);
     } else if (ev == serial_line_event_message) {
       register size_t len = min(strlen(data), sizeof(buf) - buflen);
       memcpy(buf + buflen, data, len);
       buflen += len;
       if (buflen < sizeof(buf) - 1)
-	buf[buflen++] = '\n';	/* serial event does not contain LF */
+	buf[buflen++] = '\n'; 	/* serial event does not contain LF */
     }
 
     if (buflen) {

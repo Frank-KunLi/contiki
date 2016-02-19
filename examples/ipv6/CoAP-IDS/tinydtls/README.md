@@ -1,38 +1,4 @@
-Esto va a ser caos, leer este documento para buscar todo lo relacionado a 
-implementar  TinyDTLS en Contiki (o RIOT). 
 
-Primera pregunta donde estan los cipher suites la configuración por default
-maneja TLS_PSK_WITH_AES_128_CCM_8 cuando el RFC de DTLS indica que es 
-mandatorio TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8. 
-Otra duda, es posible implementer  PSK with DH ?  
-Diffie-Hellman permite conseguir secrecía perfecta.
-
-Despues, exactamente cual es el espacio que ocupa en un nodo compatible 
-con Contiki y Riot-OS ? 
-
-Posterior a esto, las actuales implementaciones de CoAP en Contiki deben
-ser medidas  para  insertar DTLS en la comunicación 
-Otra opción es a la libcoap
-
-Paquetes que de plano creo que no deberian estar compilandose: 
-  CC        ../../../../core/net/ip/dhcpc.c
-  CC        ../../../../core/net/ip/ip64-addr.c
-  CC        ../../../../core/net/ip/psock.c
-  CC        ../../../../core/net/ip/resolv.c
-  CC        ../../../../core/net/ip/simple-udp.c
-  CC        ../../../../core/net/ip/slipdev.c
-  CC        ../../../../core/net/ip/tcp-socket.c
-  CC        ../../../../core/net/ip/tcpip.c
-  CC        ../../../../core/net/ip/udp-socket.c
-  CC        ../../../../core/net/ip/uip-debug.c
-  CC        ../../../../core/net/ip/uip-nameserver.c
-  CC        ../../../../core/net/ip/uip-packetqueue.c
-  CC        ../../../../core/net/ip/uip-split.c
-  CC        ../../../../core/net/ip/uip-udp-packet.c
-  CC        ../../../../core/net/ip/uiplib.c
-
- Algo similar courre con MAC, al parecer se va compilando tambien todos los 
- protocolos de MAC (Null, X, etc.) cuando solo nos interesa ContikiMAC.
  
 ######################################################################################## 
  Observacioens de dtls.c/h
@@ -91,8 +57,9 @@ Paquetes que de plano creo que no deberian estar compilandose:
   ./configure --with-contiki  --target=sky --without-ecc --without-debug --build=x86_64-linux-gnu
   ./configure --with-contiki  --target=sky --without-ecc --without-debug 
   ./configure  --build=x86_64-linux-gnu
+  ./configure  --build=x86_64-linux-gnu --without-ecc --without-psk --without-debug 
   ./configure  --build=x86_64-linux-gnu --without-ecc
-  ./configure  --build=x86_64-linux-gnu --without-ecc
+  ./configure --with-contiki  --without-debug --without-ecc
 
   NOTA: AL parecer TLS_NULL_WITH_NULL_NULL no es aceptado en el cliente ni server
   PERO esta en el codigo
