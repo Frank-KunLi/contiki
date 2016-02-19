@@ -102,6 +102,7 @@ extern resource_t res_light;
 #endif
 
 
+#define LISTENING_PORT     UIP_HTONS(20220)
 
 
 #define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
@@ -309,7 +310,7 @@ init_dtls() {
 
 
   server_conn = udp_new(NULL, 0, NULL);
-  udp_bind(server_conn, UIP_HTONS(20220));
+  udp_bind(server_conn, LISTENING_PORT);
 
   //FIXME
   dtls_set_log_level(DTLS_LOG_DEBUG);
@@ -327,20 +328,23 @@ set_global_address(void)
   uip_ipaddr_t ipaddr;
 
   //BLESSING  Neighbor Discovery Protocol!!!
-  uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0, 0, 0, 3);
+  uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0, 0, 0, 0);
   
   uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
   //IPv6 Anycast and that is all, NDP do his magic
   uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
   
   
-  //TODO: The servers  can auto-conf but annoucing the address should be good.
+  //TODO: The servers  can auto-conf but adversiment the address should be good.
 }
 /*---------------------------------------------------------------------------*/
 
 /* NOTE: Similar al cliente, el server tiene dos PRocesos corriendo en paralelo
          Al menos así esta en Lithe, sin embargo este no es un copy/paste pues 
-         el servidor de Erbium ha cambiado significativamente desde entonces. */
+         el servidor de Erbium ha cambiado significativamente desde entonces. 
+         
+	TODO: Regresar el server a dos procesos. Probablemente, es multi-threading.
+ */
 
 PROCESS(coaps_server_example, "CoAPS Server Example"); 
 AUTOSTART_PROCESSES(&coaps_server_example);
@@ -374,12 +378,9 @@ PROCESS_THREAD(coaps_server_example, ev, data)
   PRINTF("IP+UDP header: %u\n", UIP_IPUDPH_LEN);
   PRINTF("REST max chunk: %u\n", REST_MAX_CHUNK_SIZE);
   
-  
-    
   rest_init_engine(); /* Initialize the REST engine. */
   print_local_addresses(); 
   
-
   if (!dtls_context) {
     dsrv_log(LOG_EMERG, "cannot create context\n");
     PROCESS_EXIT();

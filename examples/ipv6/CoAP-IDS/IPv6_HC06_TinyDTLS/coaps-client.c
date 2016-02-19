@@ -82,8 +82,11 @@
 
 
 //Definidos en contiki/core/*udp*
-#define LOCAL_PORT      UIP_HTONS(COAP_DEFAULT_PORT + 1)
-#define REMOTE_PORT     UIP_HTONS(COAP_DEFAULT_PORT)
+//#define LOCAL_PORT      UIP_HTONS(COAP_DEFAULT_PORT + 1)
+//#define REMOTE_PORT     UIP_HTONS(COAP_DEFAULT_PORT)
+
+#define LOCAL_PORT      UIP_HTONS(20220 + 1)
+#define REMOTE_PORT     UIP_HTONS(20220)
 
 /*NOTE: PRobably the most important element */
 #define TOGGLE_INTERVAL 100
@@ -374,7 +377,6 @@ init_dtls_client(session_t *dst) {
     .write = send_to_peer_client,
     .read  = read_from_peer_client,
     .event = on_event_client,
-	//.event = NULL,
 #ifdef DTLS_PSK
     .get_psk_info = get_psk_info_client,
 #endif /* DTLS_PSK */
@@ -386,19 +388,18 @@ init_dtls_client(session_t *dst) {
 /*FIXME: Aqui deberia ir DTLS_Null (No cifrado)???*/
   };
   
-  //WARNING: ... AH!
   
   printf("CoAPS   client ( %s ) started\n", PACKAGE_STRING);
 
   print_local_addresses();
 
   dst->size = sizeof(dst->addr) + sizeof(dst->port);
-  dst->port = UIP_HTONS(20220);
+  dst->port = REMOTE_PORT;
 
 
   set_connection_address(&dst->addr);
   client_conn = udp_new(&dst->addr, 0, NULL);
-  udp_bind(client_conn, dst->port);
+  udp_bind(client_conn, LOCAL_PORT);
 
   printf("set connection address to ");
   PRINT6ADDR(&dst->addr);
@@ -468,7 +469,7 @@ PROCESS_THREAD(coaps_client, ev, data)
 			PRINTF("--Requesting %s--\n", service_urls[uri_switch]);
 
 
-			COAP_BLOCKING_REQUEST(&(dst_process.addr), REMOTE_PORT, request, 
+			COAP_BLOCKING_REQUEST(&(dst_process.addr), &(dst_process.port), request, 
 									client_chunk_handler, dtls_context_client, &dst_process);
 
 			PRINTF("\n--Done--\n");
