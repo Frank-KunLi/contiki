@@ -300,7 +300,7 @@ init_dtls() {
   };
 
 
-  PRINTF("DTLS server started\n");
+  PRINTF("DTLS server (%s) started\n", PACKAGE_STRING);
 
   //FIXME: tmp_addr is a structure only defined for the cc2520
   //Lithe no usa esta linea. Queda en revision
