@@ -113,7 +113,7 @@
 #define PLATFORM_HAS_LEDS 1
 
 #undef DEBUG
-#define DEBUG 0
+#define DEBUG 1
 
 /* Filtering .well-known/core per query can be disabled to save space.
 #undef COAP_LINK_FORMAT_FILTERING
