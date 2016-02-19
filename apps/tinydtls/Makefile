@@ -33,7 +33,7 @@ ETAGS = /bin/false
 
 prefix = /usr/local
 exec_prefix = ${prefix}
-abs_builddir = /home/user/contiki/apps/tinydtls
+abs_builddir = /home/user/contiki-CoApS/apps/tinydtls
 top_builddir = .
 libdir = ${exec_prefix}/lib
 includedir = ${prefix}/include/tinydtls
