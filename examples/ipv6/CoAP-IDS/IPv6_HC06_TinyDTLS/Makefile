@@ -50,7 +50,7 @@ include $(CONTIKI)/Makefile.include
 # in hard way.  As we are to use other configuration, those ines were 
 # transferred to the sourcodes.
 
-#TODO: Averiguar que jodido hace esto
+#TODO: TinyDTLS originally try to optimize space when compiling 
 CFLAGS += -ffunction-sections
 LDFLAGS += -Wl,--gc-sections,--undefined=_reset_vector__,--undefined=InterruptVectors,--undefined=_copy_data_init__,--undefined=_clear_bss_init__,--undefined=_end_of_init__
 

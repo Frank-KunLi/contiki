@@ -73,8 +73,8 @@
  * NOTE: For this project the 6BR router is compiled from their own example folder 
  * Thus is not using this file for their own configuration.
  */
-#undef SICSLOWPAN_CONF_COMPRESSION_THRESHOLD
-#define SICSLOWPAN_CONF_COMPRESSION_THRESHOLD     23
+//#undef SICSLOWPAN_CONF_COMPRESSION_THRESHOLD
+//#define SICSLOWPAN_CONF_COMPRESSION_THRESHOLD     23
 
 
 // This enable 6LoWPAN + 6UDP (Or Contiki equivalent)
@@ -97,9 +97,9 @@
 /* For trying to save space */ 
 /* Filtering .well-known/core per query can be disabled to save space. */
 #undef COAP_LINK_FORMAT_FILTERING
-#define COAP_LINK_FORMAT_FILTERING     0
+#define COAP_LINK_FORMAT_FILTERING     1
 #undef  COAP_PROXY_OPTION_PROCESSING
-#define COAP_PROXY_OPTION_PROCESSING   0
+#define COAP_PROXY_OPTION_PROCESSING   1
 
 
 /* WARNING FIXME:  TinyDTLS seems to ignore its own #define once the code 
@@ -108,17 +108,19 @@
  * 
  * 	FIXME: By strange reason the NULL ciphersutie is not supported 
  *  by TinyDTLS even if its already defined in the code.
+ * 
+ * ./configure --with-contiki  --without-debug --without-ecc --without-psk
  */
 
-/** Defined to 1 if tinydtls is built with support for ECC */
-#undef DTLS_ECC
-#define DTLS_ECC 0
-
-/** Defined to 1 if tinydtls is built with support for PSK */
-#undef DTLS_PSK
-#define DTLS_PSK 0
+/*
+undef DTLS_ECC
+define DTLS_ECC 1
 
 
+undef DTLS_PSK
+define DTLS_PSK 1
+
+*/
 
 /* *****************  Specific of the motes   ******************************* */ 
 
@@ -149,5 +151,5 @@
 
 /* er-rest  hace un poco de uso de DEBUG*/ 
 #undef DEBUG
-#define DEBUG 1 
+#define DEBUG 0 
 
