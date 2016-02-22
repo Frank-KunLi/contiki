@@ -35,7 +35,7 @@
 #define assert(x)
 #endif
 
-#include "tinydtls_debug.h"
+#include "debug.h"
 #include "hmac.h"
 
 /* use malloc()/free() on platforms other than Contiki */
@@ -43,7 +43,7 @@
 #include <stdlib.h>
 
 static inline dtls_hmac_context_t *
-dtls_hmac_context_new(void) {
+dtls_hmac_context_new() {
   return (dtls_hmac_context_t *)malloc(sizeof(dtls_hmac_context_t));
 }
 
