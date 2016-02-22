@@ -65,8 +65,8 @@
 //#include "net/ip/uip-debug.h"
 
 #ifdef TINYDTLS_DEBUG
-#include "debug.h" 
-#endif /* */ 
+#include "tinydtls_debug.h" 
+#endif
 //#include "dtls.h"
 
 #if TINYDTLS_DEBUG

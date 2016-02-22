@@ -36,7 +36,10 @@
 #ifndef WITH_CONTIKI
 #include <stdlib.h>
 #include "uthash.h"
+#include  <unistd.h>
 #endif /* WITH_CONTIKI */
+
+//#include <unistd.h>
 
 #include "tinydtls_debug.h"
 #include "numeric.h"
@@ -115,6 +118,17 @@
 /* some constants for the PRF */
 #define PRF_LABEL(Label) prf_label_##Label
 #define PRF_LABEL_SIZE(Label) (sizeof(PRF_LABEL(Label)) - 1)
+
+
+/*RAFs FIXME: Adding support of ssize_t  for RIO is OK but for contiki
+ *      is tricky. 
+ * 		Using HAVE_UNISTD_H (#include <stdio.h> ) is useless. 
+ * 	 	As the Linux's sys/types.h are not invoked by Contiki  for now
+ * 		we uses a custom (AND static) ssize_t definition.
+*/
+#ifdef WITH_CONTIKI
+	#define ssize_t unsigned int
+#endif /* WITH_CONTIKI */
 
 static const unsigned char prf_label_master[] = "master secret";
 static const unsigned char prf_label_key[] = "key expansion";

@@ -43,6 +43,7 @@
 //#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "contiki.h"
 #include "contiki-net.h"
 #include "rest-engine.h"
@@ -61,7 +62,7 @@
 #include "net/ip/uip-debug.h"
 
 #ifdef TINYDTLS_DEBUG
-#include "debug.h" 
+#include "tinydtls_debug.h" 
 #endif
 
 #ifdef ENABLE_POWERTRACE

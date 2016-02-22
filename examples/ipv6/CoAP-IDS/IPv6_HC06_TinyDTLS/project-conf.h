@@ -122,6 +122,10 @@ define DTLS_PSK 1
 
 */
 
+/* The following are for avoiding  touch apps/TinyDTLS/dtls_config.h
+ */
+#define HAVE_UNISTD_H 1
+
 /* *****************  Specific of the motes   ******************************* */ 
 
 /* DANGER: If you change from wismote to any other validate the values here. 
@@ -151,5 +155,5 @@ define DTLS_PSK 1
 
 /* er-rest  hace un poco de uso de DEBUG*/ 
 #undef DEBUG
-#define DEBUG 0 
+#define DEBUG 1 
 
