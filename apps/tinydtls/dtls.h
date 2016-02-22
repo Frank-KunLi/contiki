@@ -245,7 +245,7 @@ typedef struct dtls_context_t {
  * This function initializes the tinyDTLS memory management and must
  * be called first.
  */
-void dtls_init();
+void dtls_init(void);
 
 /** 
  * Creates a new context object. The storage allocated for the new
@@ -415,6 +415,13 @@ int dtls_handle_message(dtls_context_t *ctx, session_t *session,
 dtls_peer_t *dtls_get_peer(const dtls_context_t *context,
 			   const session_t *session);
 
+/**
+ * Resets all connections with @p peer.
+ *
+ * @param context  The active DTLS context.
+ * @param peer     The peer to reset.
+ */
+void dtls_reset_peer(dtls_context_t *context, dtls_peer_t *peer);
 
 #endif /* _DTLS_DTLS_H_ */
 
