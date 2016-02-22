@@ -55,10 +55,10 @@ typedef struct netq_t {
 } netq_t;
 
 #ifndef WITH_CONTIKI
-static inline void netq_init(void)
+static inline void netq_init()
 { }
 #else
-void netq_init(void);
+void netq_init();
 #endif
 
 /** 
