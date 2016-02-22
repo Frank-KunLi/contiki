@@ -69,7 +69,7 @@
 #endif
 //#include "dtls.h"
 
-#if TINYDTLS_DEBUG
+#ifdef  TINYDTLS_DEBUG
 #include <stdio.h>
 #define printf(...) printf(__VA_ARGS__)
 #define PRINT6ADDR(addr) printf("[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
@@ -324,10 +324,12 @@ dtls_handle_read_client(dtls_context_t *ctx) {
     session.port = UIP_UDP_BUF_->srcport;
     session.size = sizeof(session.addr) + sizeof(session.port);
 
+#ifdef TINYDTLS_DEBUG
     ((char *)uip_appdata)[uip_datalen()] = 0;
     PRINTF("Client received %u Byte message from ", uip_datalen());
     PRINT6ADDR(&session.addr);
     PRINTF(":%d\n", uip_ntohs(session.port));
+#endif
 
     dtls_handle_message(ctx, &session, uip_appdata, uip_datalen());
   }

@@ -269,7 +269,12 @@ dtls_handle_read(dtls_context_t *ctx) {
     uip_ipaddr_copy(&session.addr, &UIP_IP_BUF->srcipaddr);
     session.port = UIP_UDP_BUF->srcport;
     session.size = sizeof(session.addr) + sizeof(session.port);
-    
+	
+#if TINYDTLS_DEBUG	
+	    PRINTF("Server received message from ");
+    PRINT6ADDR(&session.addr);
+    PRINTF(":%d uip_datalen %d\n", uip_ntohs(session.port),uip_datalen());
+#endif
     dtls_handle_message(ctx, &session, uip_appdata, uip_datalen());
   }
 }
@@ -340,12 +345,6 @@ set_global_address(void)
 }
 /*---------------------------------------------------------------------------*/
 
-/* NOTE: Similar al cliente, el server tiene dos PRocesos corriendo en paralelo
-         Al menos así esta en Lithe, sin embargo este no es un copy/paste pues 
-         el servidor de Erbium ha cambiado significativamente desde entonces. 
-         
-	TODO: Regresar el server a dos procesos. Probablemente, es multi-threading.
- */
 
 PROCESS(coaps_server_example, "CoAPS Server Example"); 
 AUTOSTART_PROCESSES(&coaps_server_example);
@@ -354,8 +353,7 @@ AUTOSTART_PROCESSES(&coaps_server_example);
 PROCESS_THREAD(coaps_server_example, ev, data)
 {
   PROCESS_BEGIN();
-  //PROCESS_PAUSE(); //??
-
+  
   set_global_address();
 
   dtls_init();
@@ -394,7 +392,7 @@ PROCESS_THREAD(coaps_server_example, ev, data)
    * RAFS NOTE: Original commented resources were erased for having a minimum.
    */
   rest_activate_resource(&res_hello, "test/hello");
-//  rest_activate_resource(&res_push, "test/push");
+  rest_activate_resource(&res_push, "test/push");
 #if PLATFORM_HAS_LEDS
   rest_activate_resource(&res_toggle, "actuators/toggle");
 #endif
@@ -414,8 +412,10 @@ PROCESS_THREAD(coaps_server_example, ev, data)
 	
 	/* TODO: Validate the order of the IF's clauses */ 
     if(ev == tcpip_event) {
+		
+	 /* Any CoAPS  message is handled here. */
       dtls_handle_read(dtls_context);
-	  PRINTF("Packet delivered!\n");
+	  PRINTF("TCPIP_EVENT proccesed\n");
 #if PLATFORM_HAS_BUTTON
     }else if (ev == sensors_event && data == &button_sensor){
 		PRINTF("*******BUTTON*******\n");
