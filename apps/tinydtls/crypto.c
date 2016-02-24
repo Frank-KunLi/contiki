@@ -186,6 +186,7 @@ dtls_p_hash(dtls_hashfunc_t h,
 	    const unsigned char *random1, size_t random1len,
 	    const unsigned char *random2, size_t random2len,
 	    unsigned char *buf, size_t buflen) {
+  (void) h;
   dtls_hmac_context_t *hmac_a, *hmac_p;
 
   unsigned char A[DTLS_HMAC_DIGEST_SIZE];
@@ -284,6 +285,7 @@ dtls_ccm_encrypt(aes128_ccm_t *ccm_ctx, const unsigned char *src, size_t srclen,
 		 unsigned char *buf, 
 		 unsigned char *nounce,
 		 const unsigned char *aad, size_t la) {
+  (void) src;
   long int len;
 
   assert(ccm_ctx);
@@ -301,6 +303,7 @@ dtls_ccm_decrypt(aes128_ccm_t *ccm_ctx, const unsigned char *src,
 		 size_t srclen, unsigned char *buf,
 		 unsigned char *nounce,
 		 const unsigned char *aad, size_t la) {
+  (void) src;
   long int len;
 
   assert(ccm_ctx);
