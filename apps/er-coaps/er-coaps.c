@@ -453,7 +453,7 @@ coap_send_message(uip_ipaddr_t *addr, uint16_t port, uint8_t *data,
 	int res;
 	res = dtls_write(ctx, dst, data, length);
 	if (res > 0) {
-		PRINTF("DTLS sent %d bytes payload \n", res);
+		PRINTF("-sent UDP (DTLS) datagram (%d) -\n", res);
 	}
 }
 /* ****** End:    DTLS --------*/ 

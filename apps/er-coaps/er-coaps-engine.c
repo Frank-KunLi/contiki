@@ -365,9 +365,8 @@ PROCESS_THREAD(coap_engine, ev, data)
   rest_activate_resource(&res_well_known_core, ".well-known/core");
 
   /* ****** Begin:  DTLS --------*/
-	/* NOTE:  */
-	
-  coap_register_as_transaction_handler();
+  /*  TODO: The original Lithe's DTLS handled this in the client and & server.  */
+  //coap_register_as_transaction_handler();
   
   /*
   coap_init_connection(SERVER_LISTEN_PORT);
@@ -439,7 +438,10 @@ PT_THREAD(coap_blocking_request
                                                               state->
                                                               transaction->
                                                               packet);
-
+/* ****** Begin:  DTLS --------*/
+      state->transaction->dst = dst;
+      state->transaction->ctx = ctx;
+/* ****** END:     DTLS --------*/
       coap_send_transaction(state->transaction);
       PRINTF("Requested #%lu (MID %u)\n", state->block_num, request->mid);
 

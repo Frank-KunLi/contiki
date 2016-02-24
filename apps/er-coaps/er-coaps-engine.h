@@ -74,7 +74,7 @@ PT_THREAD(coap_blocking_request
             blocking_response_handler request_callback,
             struct dtls_context_t *ctx, session_t *dst));
 
-//TinyDTLS
+/* ****** Begin:  DTLS --------*/
 #define COAP_BLOCKING_REQUEST(server_addr, server_port, request, chunk_handler, dtls_ctx, dtls_session) \
 { \
   static struct request_state_t request_state; \
@@ -85,7 +85,7 @@ PT_THREAD(coap_blocking_request
   ); \
 }
 int coap_receive(struct dtls_context_t *ctx, session_t *dst);
-
+/* ****** End:  DTLS --------*/
 
 /*
 #define COAP_BLOCKING_REQUEST(server_addr, server_port, request, chunk_handler) \
