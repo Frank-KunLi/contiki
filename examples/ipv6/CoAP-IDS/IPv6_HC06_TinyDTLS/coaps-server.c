@@ -386,6 +386,14 @@ PROCESS_THREAD(coaps_server_example, ev, data)
     PROCESS_EXIT();
   }
 
+#if    defined (DTLS_ECC) && defined (TINYDTLS_DEBUG)
+	PRINTF("The server support Cipher suite ECC\n");
+#endif
+
+#if  defined (DTLS_PSK) && defined (TINYDTLS_DEBUG)
+	PRINTF("The server support Cipher suite PSK\n");
+#endif  
+  
   /*
    * Bind the resources to their Uri-Path.
    * WARNING: Activating twice only means alternate path, not two instances!

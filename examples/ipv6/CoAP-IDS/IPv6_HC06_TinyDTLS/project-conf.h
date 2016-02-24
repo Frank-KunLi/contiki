@@ -112,15 +112,14 @@
  * ./configure --with-contiki  --without-debug --without-ecc --without-psk
  */
 
-/*
-undef DTLS_ECC
-define DTLS_ECC 1
+
+#undef DTLS_ECC
+#define DTLS_ECC 0
 
 
-undef DTLS_PSK
-define DTLS_PSK 1
+#undef DTLS_PSK
+#define DTLS_PSK 1
 
-*/
 
 /* *****************  Specific of the motes   ******************************* */ 
 
@@ -151,5 +150,5 @@ define DTLS_PSK 1
 
 /* er-rest  hace un poco de uso de DEBUG*/ 
 #undef DEBUG
-#define DEBUG 0 
+#define DEBUG 1 
 

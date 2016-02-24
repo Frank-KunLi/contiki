@@ -55,7 +55,7 @@
 
 #include "er-coaps-engine.h"
 
-#if PLATFORM_HAS_BUTTON
+#ifdef PLATFORM_HAS_BUTTON
 #include "dev/button-sensor.h"
 #endif
 
@@ -69,7 +69,7 @@
 #endif /* */ 
 //#include "dtls.h"
 
-#if TINYDTLS_DEBUG
+#ifdef TINYDTLS_DEBUG
 #include <stdio.h>
 #define printf(...) printf(__VA_ARGS__)
 #define PRINT6ADDR(addr) printf("[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
@@ -188,7 +188,7 @@ get_psk_info_client(struct dtls_context_t *ctx UNUSED_PARAM,
   switch (type) {
   case DTLS_PSK_IDENTITY:
     if (result_length < psk_id_length) {
-#if TINYDTLS_DEBUG
+#ifdef TINYDTLS_DEBUG
       dtls_warn("cannot set psk_identity -- buffer too small\n");
 #endif
       return dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
@@ -198,12 +198,12 @@ get_psk_info_client(struct dtls_context_t *ctx UNUSED_PARAM,
     return psk_id_length;
   case DTLS_PSK_KEY:
     if (id_len != psk_id_length || memcmp(psk_id, id, id_len) != 0) {
-#if TINYDTLS_DEBUG
+#ifdef TINYDTLS_DEBUG
       dtls_warn("PSK for unknown id requested, exiting\n");
 #endif
       return dtls_alert_fatal_create(DTLS_ALERT_ILLEGAL_PARAMETER);
     } else if (result_length < psk_key_length) {
-#if TINYDTLS_DEBUG		
+#ifdef TINYDTLS_DEBUG		
 		dtls_warn("cannot set psk -- buffer too small\n");
 #endif		
       return dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
@@ -211,8 +211,10 @@ get_psk_info_client(struct dtls_context_t *ctx UNUSED_PARAM,
 
     memcpy(result, psk_key, psk_key_length);
     return psk_key_length;
-  default:
-#if TINYDTLS_DEBUG
+ 
+	   
+#ifdef TINYDTLS_DEBUG
+	 default:
     dtls_warn("unsupported request type: %d\n", type);
 #endif
   }
@@ -261,7 +263,7 @@ client_chunk_handler(void *response)
 
   int len = coap_get_payload(response, &chunk);
 
-  printf("|%.*s", len, (char *)chunk);
+  PRINTF("|%.*s", len, (char *)chunk);
 }
 
 
@@ -288,9 +290,9 @@ send_to_peer_client(struct dtls_context_t *ctx,
   uip_ipaddr_copy(&conn->ripaddr, &session->addr);
   conn->rport = session->port;
 
-  printf("send to ");
+  PRINTF("send to ");
   PRINT6ADDR(&conn->ripaddr);
-  printf(":%u\n", uip_ntohs(conn->rport));
+  PRINTF(":%u\n", uip_ntohs(conn->rport));
 
   uip_udp_packet_send(conn, data, len);
 
@@ -358,13 +360,13 @@ print_local_addresses(void)
   int i;
   uint8_t state;
 
-  printf("Client IPv6 addresses: ");
+  PRINTF("Client IPv6 addresses: ");
   for(i = 0; i < UIP_DS6_ADDR_NB; i++) {
     state = uip_ds6_if.addr_list[i].state;
     if(uip_ds6_if.addr_list[i].isused &&
        (state == ADDR_TENTATIVE || state == ADDR_PREFERRED)) {
       PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
-      printf("\n");
+      PRINTF("\n");
     }
   }
 }
@@ -389,7 +391,7 @@ init_dtls_client(session_t *dst) {
   };
   
   
-  printf("CoAPS   client ( %s ) started\n", PACKAGE_STRING);
+  PRINTF("CoAPS   client ( %s ) started\n", PACKAGE_STRING);
 
   print_local_addresses();
 
@@ -401,9 +403,9 @@ init_dtls_client(session_t *dst) {
   client_conn = udp_new(&dst->addr, 0, NULL);
   udp_bind(client_conn, LOCAL_PORT);
 
-  printf("set connection address to ");
+  PRINTF("set connection address to ");
   PRINT6ADDR(&dst->addr);
-  printf(":%d\n", uip_ntohs(dst->port));
+  PRINTF(":%d\n", uip_ntohs(dst->port));
 
   //set_log_level(DTLS_LOG_DEBUG); //No no no
   
@@ -437,14 +439,21 @@ PROCESS_THREAD(coaps_client, ev, data)
 
 
   if (!dtls_context_client) {
-#if TINYDTLS_DEBUG
+#ifdef TINYDTLS_DEBUG
     dtls_emerg( "cannot create context! \n");
 #else 
-	printf("cannot create context! (Epic fail) \n");
+	PRINTF("cannot create context! (Epic fail) \n");
 #endif
     PROCESS_EXIT();
   }
   
+#if    defined (DTLS_ECC) && defined (TINYDTLS_DEBUG)
+	PRINTF("The client support Cipher suite ECC\n");
+#endif
+
+#if  defined (DTLS_PSK) && defined (TINYDTLS_DEBUG)
+	PRINTF("The client support Cipher suite PSK\n");
+#endif
 
   /* receives all CoAP messages */
   //coap_receiver_init(); //NOTE: TOO OLD (legacy)
