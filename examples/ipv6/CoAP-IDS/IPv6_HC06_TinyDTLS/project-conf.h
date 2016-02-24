@@ -110,15 +110,15 @@
  *  by TinyDTLS even if its already defined in the code.
  * 
  * ./configure --with-contiki  --without-debug --without-ecc --without-psk
+ * 
+ * NOTE: AJA! apps/tinydtls/Makefiles.tinydtls is  the cultprist!
+ *       You need to (un)comment the lines with -DDTLS_ECC and 
+ *       -DDTLS_PSK because they are able to bypass project-conf.h
+ *       Worse, even the ./configure --with-contiki ignore this
+ *       file.
  */
 
 
-#undef DTLS_ECC
-#define DTLS_ECC 0
-
-
-#undef DTLS_PSK
-#define DTLS_PSK 1
 
 
 /* *****************  Specific of the motes   ******************************* */ 
