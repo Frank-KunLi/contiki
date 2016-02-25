@@ -35,36 +35,6 @@
  *      Raul Armando Fuentes Samaniego <fuentess@telecom...>
  */
 
-#undef NETSTACK_CONF_RADIO
-#define NETSTACK_CONF_RADIO   cc2420_driver
-
-#undef NETSTACK_CONF_FRAMER
-#define NETSTACK_CONF_FRAMER  framer_802154
-
-
-
-#undef NETSTACK_CONF_MAC
-#define NETSTACK_CONF_MAC     csma_driver
-
-#undef SICSLOWPAN_CONF_COMPRESSION_THRESHOLD
-#define SICSLOWPAN_CONF_COMPRESSION_THRESHOLD     23
-
-
-// This enable 6LoWPAN + 6UDP (Or Contiki equivalent)
-#undef SICSLOWPAN_CONF_COMPRESSION
-#define SICSLOWPAN_CONF_COMPRESSION     SICSLOWPAN_COMPRESSION_HC06 
-
-
-/* Multiplies with chunk size, be aware of memory constraints. */
-#undef COAP_MAX_OPEN_TRANSACTIONS
-#define COAP_MAX_OPEN_TRANSACTIONS     4
-
-
-#undef PLATFORM_HAS_BUTTON
-#define PLATFORM_HAS_BUTTON 1
-
-#undef PLATFORM_HAS_LEDS
-#define PLATFORM_HAS_LEDS 1
 
 #undef DEBUG
 #define DEBUG 1

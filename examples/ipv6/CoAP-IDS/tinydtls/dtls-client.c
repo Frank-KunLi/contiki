@@ -42,7 +42,7 @@
 #endif
 #include "net/ip/uip-debug.h"
 
-#include "debug.h"
+#include "tinydtls_debug.h"
 #include "dtls.h"
 
 #ifdef DTLS_PSK
@@ -65,7 +65,7 @@
 
 static struct uip_udp_conn *client_conn;
 static dtls_context_t *dtls_context;
-static char buf[200];
+static char buf[] = {"This is not poetry\n" } ;
 static size_t buflen = 0;
 
 static const unsigned char ecdsa_priv_key[] = {
@@ -313,36 +313,22 @@ PROCESS_THREAD(udp_server_process, ev, data)
     dtls_emerg("cannot create context\n");
     PROCESS_EXIT();
   }
+  
+  PRINTF("We are sending (%d)... \n %s",  sizeof(buf),buf);
+  buflen = sizeof(buf);
 
-  /* Testing*/
-  static struct etimer periodic_timer;
-  #define SEND_INTERVAL		(60 * CLOCK_SECOND)
-  etimer_set(&periodic_timer, SEND_INTERVAL);
   while(1) {
-	  /* Testing */
-	  PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer)); 
-	  try_send(dtls_context, &dst);
-	  etimer_reset(&periodic_timer);
-	  
-	  
     PROCESS_YIELD();
     if(ev == tcpip_event) {
-	  printf("EVENT!");
       dtls_handle_read(dtls_context);
-    } else if (ev == serial_line_event_message) {
-      register size_t len = min(strlen(data), sizeof(buf) - buflen);
-      memcpy(buf + buflen, data, len);
-      buflen += len;
-      if (buflen < sizeof(buf) - 1)
-	buf[buflen++] = '\n'; 	/* serial event does not contain LF */
-    }
+    } 
 
-    if (buflen) {
       if (!connected)
 	connected = dtls_connect(dtls_context, &dst) >= 0;
       
+	PRINTF("AJA!");
       try_send(dtls_context, &dst);
-    }
+    
   }
   
   PROCESS_END();

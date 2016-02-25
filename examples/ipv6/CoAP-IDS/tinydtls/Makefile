@@ -25,29 +25,13 @@ include $(CONTIKI)/Makefile.include
 # the library's version (RAFS: Unknow why are here)
 #VERSION:=0.8.2
 
-# tools (RAFS: Unknow why are here)
-#SHELL = /bin/sh
-#MKDIR = mkdir
-
-#WARNING RAFS: AL DEMONIO!
-#abs_builddir = /home/user/contiki/examples/ipv6/CoAP-IDS/tinydtls/
-#top_builddir = /home/user/contiki/apps/tinydtls
-#top_srcdir:= /home/user/contiki/apps/tinydtls
 
 UIP_CONF_IPV6=1
 
-ifneq ($(ROLE),client)
-	CFLAGS+= -DHARD_CODED_ADDRESS=\"aaaa::02:232\"
-else
-	CFLAGS+= -DUDP_CONNECTION_ADDR="fe80::ff:fe02:232" \
-		 -DHARD_CODED_ADDRESS=\"aaaa::02:230\"
-endif
 
 CFLAGS += -ffunction-sections
 LDFLAGS += -Wl,--gc-sections,--undefined=_reset_vector__,--undefined=InterruptVectors,--undefined=_copy_data_init__,--undefined=_clear_bss_init__,--undefined=_end_of_init__
 
 CFLAGS += -DSHA2_USE_INTTYPES_H
 
-#ifeq ("1", "1")
 include $(CONTIKI)/Makefile.include
-#endif
