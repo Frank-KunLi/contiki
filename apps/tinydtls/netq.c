@@ -1,14 +1,24 @@
-/* netq.h -- Simple packet queue
+/*******************************************************************************
  *
- * Copyright (C) 2010--2012 Olaf Bergmann <bergmann@tzi.org>
+ * Copyright (c) 2011, 2012, 2013, 2014, 2015 Olaf Bergmann (TZI) and others.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * and Eclipse Distribution License v. 1.0 which accompanies this distribution.
  *
- * This file is part of the library tinyDTLS. Please see the file
- * LICENSE for terms of use.
- */
+ * The Eclipse Public License is available at http://www.eclipse.org/legal/epl-v10.html
+ * and the Eclipse Distribution License is available at 
+ * http://www.eclipse.org/org/documents/edl-v10.php.
+ *
+ * Contributors:
+ *    Olaf Bergmann  - initial API and implementation
+ *    Hauke Mehrtens - memory optimization, ECC integration
+ *
+ *******************************************************************************/
 
 #include "dtls_config.h"
 #include "tinydtls_debug.h"
 #include "netq.h"
+#include "utlist.h"
 
 #ifdef HAVE_ASSERT_H
 #include <assert.h>
@@ -18,8 +28,6 @@
 #  define assert(x)
 #endif
 #endif
-
-#include "t_list.h"
 
 #ifndef WITH_CONTIKI
 #include <stdlib.h>
@@ -33,8 +41,6 @@ static inline void
 netq_free_node(netq_t *node) {
   free(node);
 }
-
-/* FIXME: implement Contiki's list functions using utlist.h */
 
 #else /* WITH_CONTIKI */
 #include "memb.h"
@@ -58,30 +64,27 @@ netq_init() {
 #endif /* WITH_CONTIKI */
 
 int 
-netq_insert_node(list_t queue, netq_t *node) {
+netq_insert_node(netq_t **queue, netq_t *node) {
   netq_t *p;
 
   assert(queue);
   assert(node);
 
-  p = (netq_t *)list_head(queue);
-  while(p && p->t <= node->t && list_item_next(p))
-    p = list_item_next(p);
+  p = *queue;
+  while(p && p->t <= node->t)
+    p = p->next;
 
   if (p)
-    list_insert(queue, p, node);
+    LL_PREPEND_ELEM(*queue, p, node);
   else
-    list_push(queue, node);
+    LL_APPEND(*queue, node);
 
   return 1;
 }
 
 netq_t *
-netq_head(list_t queue) {
-  if (!queue)
-    return NULL;
-
-  return list_head(queue);
+netq_head(netq_t **queue) {
+  return queue ? *queue : NULL;
 }
 
 netq_t *
@@ -89,22 +92,24 @@ netq_next(netq_t *p) {
   if (!p)
     return NULL;
 
-  return list_item_next(p);
+  return p->next;
 }
 
 void
-netq_remove(list_t queue, netq_t *p) {
+netq_remove(netq_t **queue, netq_t *p) {
   if (!queue || !p)
     return;
 
-  list_remove(queue, p);
+  LL_DELETE(*queue, p);
 }
 
-netq_t *netq_pop_first(list_t queue) {
-  if (!queue)
-    return NULL;
-
-  return list_pop(queue);
+netq_t *netq_pop_first(netq_t **queue) {
+  netq_t *p = netq_head(queue);
+  
+  if (p)
+    LL_DELETE(*queue, p);
+  
+  return p;
 }
 
 netq_t *
@@ -120,7 +125,7 @@ netq_node_new(size_t size) {
   if (node)
     memset(node, 0, sizeof(netq_t));
 
-  return node;  
+  return node;
 }
 
 void 
@@ -130,11 +135,13 @@ netq_node_free(netq_t *node) {
 }
 
 void 
-netq_delete_all(list_t queue) {
-  netq_t *p;
+netq_delete_all(netq_t **queue) {
+  netq_t *p, *tmp;
   if (queue) {
-    while((p = list_pop(queue)))
-      netq_free_node(p); 
+    LL_FOREACH_SAFE(*queue,p,tmp) {
+      netq_free_node(p);
+    }
+
+    *queue = NULL;
   }
 }
-

@@ -1,27 +1,19 @@
-/* debug.c -- debug utilities
+/*******************************************************************************
  *
- * Copyright (C) 2011--2012 Olaf Bergmann <bergmann@tzi.org>
+ * Copyright (c) 2011, 2012, 2013, 2014, 2015 Olaf Bergmann (TZI) and others.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * and Eclipse Distribution License v. 1.0 which accompanies this distribution.
  *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use, copy,
- * modify, merge, publish, distribute, sublicense, and/or sell copies
- * of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * The Eclipse Public License is available at http://www.eclipse.org/legal/epl-v10.html
+ * and the Eclipse Distribution License is available at 
+ * http://www.eclipse.org/org/documents/edl-v10.php.
  *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
+ * Contributors:
+ *    Olaf Bergmann  - initial API and implementation
+ *    Hauke Mehrtens - memory optimization, ECC integration
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
- * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
- * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
+ *******************************************************************************/
 
 #include "tinydtls.h"
 #include "dtls_config.h"
@@ -65,7 +57,11 @@ dtls_get_log_level(void) {
 
 void
 dtls_set_log_level(log_t level) {
+#ifdef NDEBUG
+  maxlog = min(level, DTLS_LOG_INFO);
+#else /* !NDEBUG */
   maxlog = level;
+#endif /* NDEBUG */
 }
 
 /* this array has the same order as the type log_t */
@@ -97,6 +93,8 @@ print_timestamp(char *s, size_t len, clock_time_t t) {
 }
 
 #endif /* HAVE_TIME_H */
+
+#ifndef NDEBUG
 
 /** 
  * A length-safe strlen() fake. 
@@ -203,6 +201,8 @@ dsrv_print_addr(const session_t *addr, char *buf, size_t len) {
 #endif
 }
 
+#endif /* NDEBUG */
+
 #ifndef WITH_CONTIKI
 void 
 dsrv_log(log_t level, char *format, ...) {
@@ -292,7 +292,7 @@ dtls_dsrv_hexdump_log(log_t level, const char *name, const unsigned char *buf, s
   FILE *log_fd;
   int n = 0;
 
-  if (maxlog < (int) level)
+  if (maxlog < level)
     return;
 
   log_fd = level <= DTLS_LOG_CRIT ? stderr : stdout;

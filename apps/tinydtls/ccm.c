@@ -1,27 +1,19 @@
-/* dtls -- a very basic DTLS implementation
+/*******************************************************************************
  *
- * Copyright (C) 2011--2014 Olaf Bergmann <bergmann@tzi.org>
+ * Copyright (c) 2011, 2012, 2013, 2014, 2015 Olaf Bergmann (TZI) and others.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * and Eclipse Distribution License v. 1.0 which accompanies this distribution.
  *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use, copy,
- * modify, merge, publish, distribute, sublicense, and/or sell copies
- * of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * The Eclipse Public License is available at http://www.eclipse.org/legal/epl-v10.html
+ * and the Eclipse Distribution License is available at 
+ * http://www.eclipse.org/org/documents/edl-v10.php.
  *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
+ * Contributors:
+ *    Olaf Bergmann  - initial API and implementation
+ *    Hauke Mehrtens - memory optimization, ECC integration
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
- * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
- * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
+ *******************************************************************************/
 
 #include <string.h>
 
@@ -58,7 +50,7 @@ block0(size_t M,       /* number of auth bytes */
   result[0] = CCM_FLAGS(la, M, L);
 
   /* copy the nonce */
-  memcpy(result + 1, nonce, DTLS_CCM_BLOCKSIZE - L);
+  memcpy(result + 1, nonce, DTLS_CCM_BLOCKSIZE - L - 1);
   
   for (i=0; i < L; i++) {
     result[15-i] = lm & 0xff;
@@ -195,7 +187,7 @@ dtls_ccm_encrypt_message(rijndael_ctx *ctx, size_t M, size_t L,
   A[0] = L-1;
 
   /* copy the nonce */
-  memcpy(A + 1, nonce, DTLS_CCM_BLOCKSIZE - L);
+  memcpy(A + 1, nonce, DTLS_CCM_BLOCKSIZE - L - 1);
   
   while (lm >= DTLS_CCM_BLOCKSIZE) {
     /* calculate MAC */
@@ -265,7 +257,7 @@ dtls_ccm_decrypt_message(rijndael_ctx *ctx, size_t M, size_t L,
   A[0] = L-1;
 
   /* copy the nonce */
-  memcpy(A + 1, nonce, DTLS_CCM_BLOCKSIZE - L);
+  memcpy(A + 1, nonce, DTLS_CCM_BLOCKSIZE - L - 1);
   
   while (lm >= DTLS_CCM_BLOCKSIZE) {
     /* decrypt */

@@ -1,27 +1,19 @@
-/* dtls -- a very basic DTLS implementation
+/*******************************************************************************
  *
- * Copyright (C) 2011--2012 Olaf Bergmann <bergmann@tzi.org>
+ * Copyright (c) 2011, 2012, 2013, 2014, 2015 Olaf Bergmann (TZI) and others.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * and Eclipse Distribution License v. 1.0 which accompanies this distribution.
  *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use, copy,
- * modify, merge, publish, distribute, sublicense, and/or sell copies
- * of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * The Eclipse Public License is available at http://www.eclipse.org/legal/epl-v10.html
+ * and the Eclipse Distribution License is available at 
+ * http://www.eclipse.org/org/documents/edl-v10.php.
  *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
+ * Contributors:
+ *    Olaf Bergmann  - initial API and implementation
+ *    Hauke Mehrtens - memory optimization, ECC integration
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
- * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
- * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
+ *******************************************************************************/
 
 #ifndef _DTLS_CCM_H_
 #define _DTLS_CCM_H_
@@ -42,7 +34,7 @@
  * \param M   The number of authentication octets.
  * \param L   The number of bytes used to encode the message length.
  * \param N   The nonce value to use. You must provide \c DTLS_CCM_BLOCKSIZE 
- *            nonce octets, although only the first \c 16 - \p L are used.
+ *            nonce octets, although only the first \c 16 - \p L - 1 are used.
  * \param msg The message to encrypt. The first \p la octets are additional
  *            authentication data that will be cleartext. Note that the 
  *            encryption operation modifies the contents of \p msg and adds 
