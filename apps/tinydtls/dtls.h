@@ -1,20 +1,28 @@
-/*******************************************************************************
+/* dtls -- a very basic DTLS implementation
  *
- * Copyright (c) 2011, 2012, 2013, 2014, 2015 Olaf Bergmann (TZI) and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Eclipse Distribution License v. 1.0 which accompanies this distribution.
+ * Copyright (C) 2011--2013 Olaf Bergmann <bergmann@tzi.org>
+ * Copyright (C) 2013 Hauke Mehrtens <hauke@hauke-m.de>
  *
- * The Eclipse Public License is available at http://www.eclipse.org/legal/epl-v10.html
- * and the Eclipse Distribution License is available at 
- * http://www.eclipse.org/org/documents/edl-v10.php.
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use, copy,
+ * modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- * Contributors:
- *    Olaf Bergmann  - initial API and implementation
- *    Hauke Mehrtens - memory optimization, ECC integration
- *    Achim Kraus    - session recovery
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
  *
- *******************************************************************************/
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+ * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 
 /**
  * @file dtls.h
@@ -26,10 +34,14 @@
 
 #include <stdint.h>
 
+#include "t_list.h"
 #include "state.h"
 #include "peer.h"
 
+#ifndef WITH_CONTIKI
 #include "uthash.h"
+#include "t_list.h"
+#endif /* WITH_CONTIKI */
 
 #include "alert.h"
 #include "crypto.h"
@@ -207,19 +219,20 @@ typedef struct {
 #endif /* DTLS_ECC */
 } dtls_handler_t;
 
-struct netq_t;
-
 /** Holds global information of the DTLS engine. */
 typedef struct dtls_context_t {
   unsigned char cookie_secret[DTLS_COOKIE_SECRET_LENGTH];
   clock_time_t cookie_secret_age; /**< the time the secret has been generated */
 
+#ifndef WITH_CONTIKI
   dtls_peer_t *peers;		/**< peer hash map */
-#ifdef WITH_CONTIKI
+#else /* WITH_CONTIKI */
+  LIST_STRUCT(peers);
+
   struct etimer retransmit_timer; /**< fires when the next packet must be sent */
 #endif /* WITH_CONTIKI */
 
-  struct netq_t *sendqueue;     /**< the packets to send */
+  LIST_STRUCT(sendqueue);	/**< the packets to send */
 
   void *app;			/**< application-specific data */
 

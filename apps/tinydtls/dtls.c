@@ -1,24 +1,28 @@
-/*******************************************************************************
+/* dtls -- a very basic DTLS implementation
  *
- * Copyright (c) 2011, 2012, 2013, 2014, 2015 Olaf Bergmann (TZI) and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Eclipse Distribution License v. 1.0 which accompanies this distribution.
+ * Copyright (C) 2011--2012,2014 Olaf Bergmann <bergmann@tzi.org>
+ * Copyright (C) 2013 Hauke Mehrtens <hauke@hauke-m.de>
  *
- * The Eclipse Public License is available at http://www.eclipse.org/legal/epl-v10.html
- * and the Eclipse Distribution License is available at 
- * http://www.eclipse.org/org/documents/edl-v10.php.
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use, copy,
+ * modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- * Contributors:
- *    Olaf Bergmann  - initial API and implementation
- *    Hauke Mehrtens - memory optimization, ECC integration
- *    Achim Kraus    - session recovery
- *    Sachin Agrawal - rehandshake support
- *    ---
- *    Raul Fuentes   - Contiki & Riot adaptation for CoAPS
- *    OlegH          - Riot adaptation for CoAPS
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
  *
- *******************************************************************************/
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+ * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 
 #include "tinydtls.h"
 #include "dtls_config.h"
@@ -31,13 +35,11 @@
 #endif
 #ifndef WITH_CONTIKI
 #include <stdlib.h>
-#include "global.h"
+#include "uthash.h"
+#include  <unistd.h>
 #endif /* WITH_CONTIKI */
 
-#include "utlist.h"
-#ifndef DTLS_PEERS_NOHASH
-#include "uthash.h"
-#endif /* DTLS_PEERS_NOHASH */
+//#include <unistd.h>
 
 #include "tinydtls_debug.h"
 #include "numeric.h"
@@ -62,34 +64,16 @@
 #define dtls_get_sequence_number(H) dtls_uint48_to_ulong((H)->sequence_number)
 #define dtls_get_fragment_length(H) dtls_uint24_to_int((H)->fragment_length)
 
-#ifdef DTLS_PEERS_NOHASH
-#define FIND_PEER(head,sess,out)                                \
-  do {                                                          \
-    dtls_peer_t * tmp;                                          \
-    (out) = NULL;                                               \
-    LL_FOREACH((head), tmp) {                                   \
-      if (dtls_session_equals(&tmp->session, (sess))) {         \
-        (out) = tmp;                                            \
-        break;                                                  \
-      }                                                         \
-    }                                                           \
-  } while (0)
-#define DEL_PEER(head,delptr)                   \
-  if ((head) != NULL && (delptr) != NULL) {	\
-    LL_DELETE(head,delptr);                     \
-  }
-#define ADD_PEER(head,sess,add)                 \
-  LL_PREPEND(ctx->peers, peer);
-#else /* DTLS_PEERS_NOHASH */
-#define FIND_PEER(head,sess,out)		\
+#ifndef WITH_CONTIKI
+#define HASH_FIND_PEER(head,sess,out)		\
   HASH_FIND(hh,head,sess,sizeof(session_t),out)
-#define ADD_PEER(head,sess,add)                 \
+#define HASH_ADD_PEER(head,sess,add)		\
   HASH_ADD(hh,head,sess,sizeof(session_t),add)
-#define DEL_PEER(head,delptr)                   \
+#define HASH_DEL_PEER(head,delptr)		\
   if ((head) != NULL && (delptr) != NULL) {	\
     HASH_DELETE(hh,head,delptr);		\
   }
-#endif /* DTLS_PEERS_NOHASH */
+#endif /* WITH_CONTIKI */
 
 #define DTLS_RH_LENGTH sizeof(dtls_record_header_t)
 #define DTLS_HS_LENGTH sizeof(dtls_handshake_header_t)
@@ -242,20 +226,26 @@ static void dtls_stop_retransmission(dtls_context_t *context, dtls_peer_t *peer)
 
 dtls_peer_t *
 dtls_get_peer(const dtls_context_t *ctx, const session_t *session) {
-  dtls_peer_t *p;
-  FIND_PEER(ctx->peers, session, p);
+  dtls_peer_t *p = NULL;
+
+#ifndef WITH_CONTIKI
+  HASH_FIND_PEER(ctx->peers, session, p);
+#else /* WITH_CONTIKI */
+  for (p = list_head(ctx->peers); p; p = list_item_next(p))
+    if (dtls_session_equals(&p->session, session))
+      return p;
+#endif /* WITH_CONTIKI */
+  
   return p;
 }
 
-/**
- * Adds @p peer to list of peers in @p ctx. This function returns @c 0
- * on success, or a negative value on error (e.g. due to insufficient
- * storage).
- */
-static int
+static void
 dtls_add_peer(dtls_context_t *ctx, dtls_peer_t *peer) {
-  ADD_PEER(ctx->peers, session, peer);
-  return 0;
+#ifndef WITH_CONTIKI
+  HASH_ADD_PEER(ctx->peers, session, peer);
+#else /* WITH_CONTIKI */
+  list_add(ctx->peers, peer);
+#endif /* WITH_CONTIKI */
 }
 
 int
@@ -1514,7 +1504,7 @@ dtls_send_multi(dtls_context_t *ctx, dtls_peer_t *peer,
         n->length += buf_len_array[i];
       }
 
-      if (!netq_insert_node(&ctx->sendqueue, n)) {
+      if (!netq_insert_node(ctx->sendqueue, n)) {
 	dtls_warn("cannot add packet to retransmit buffer\n");
 	netq_node_free(n);
 #ifdef WITH_CONTIKI
@@ -1570,7 +1560,12 @@ static void dtls_destroy_peer(dtls_context_t *ctx, dtls_peer_t *peer, int unlink
   if (peer->state != DTLS_STATE_CLOSED && peer->state != DTLS_STATE_CLOSING)
     dtls_close(ctx, &peer->session);
   if (unlink) {
-    DEL_PEER(ctx->peers, peer);
+#ifndef WITH_CONTIKI
+    HASH_DEL_PEER(ctx->peers, peer);
+#else /* WITH_CONTIKI */
+    list_remove(ctx->peers, peer);
+#endif /* WITH_CONTIKI */
+
     dtls_dsrv_log_addr(DTLS_LOG_DEBUG, "removed peer", &peer->session);
   }
   dtls_free_peer(peer);
@@ -3266,7 +3261,9 @@ handle_handshake_msg(dtls_context_t *ctx, dtls_peer_t *peer, session_t *session,
 
   case DTLS_HT_CLIENT_HELLO:
 
-    if ((peer && state != DTLS_STATE_CONNECTED && state != DTLS_STATE_WAIT_CLIENTHELLO) ||
+    if ((peer && state != DTLS_STATE_CONNECTED &&
+                 state != DTLS_STATE_WAIT_CLIENTHELLO &&
+                 state != DTLS_STATE_WAIT_CLIENTHELLO_COOKIE) ||
 	(!peer && state != DTLS_STATE_WAIT_CLIENTHELLO)) {
       return dtls_alert_fatal_create(DTLS_ALERT_UNEXPECTED_MESSAGE);
     }
@@ -3299,7 +3296,11 @@ handle_handshake_msg(dtls_context_t *ctx, dtls_peer_t *peer, session_t *session,
       * the cookie exchange */
     if (peer && state == DTLS_STATE_WAIT_CLIENTHELLO) {
        dtls_debug("removing the peer\n");
-       DEL_PEER(ctx->peers, peer);
+#ifndef WITH_CONTIKI
+       HASH_DEL_PEER(ctx->peers, peer);
+#else  /* WITH_CONTIKI */
+       list_remove(ctx->peers, peer);
+#endif /* WITH_CONTIKI */
 
        dtls_free_peer(peer);
        peer = NULL;
@@ -3323,12 +3324,9 @@ handle_handshake_msg(dtls_context_t *ctx, dtls_peer_t *peer, session_t *session,
        */
       security = dtls_security_params(peer);
       security->rseq = 1;
-
-      if (dtls_add_peer(ctx, peer) < 0) {
-	dtls_alert("cannot add peer\n");
-	dtls_free_peer(peer);
-        return dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
-      }
+      dtls_add_peer(ctx, peer);
+      peer->state = DTLS_STATE_WAIT_CLIENTHELLO_COOKIE;
+      return 0;
     }
     if (peer && !peer->handshake_params) {
       dtls_handshake_header_t *hs_header = DTLS_HANDSHAKE_HEADER(data);
@@ -3337,6 +3335,7 @@ handle_handshake_msg(dtls_context_t *ctx, dtls_peer_t *peer, session_t *session,
       if (!peer->handshake_params)
         return dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
 
+      LIST_STRUCT_INIT(peer->handshake_params, reorder_queue);
       peer->handshake_params->hs_state.mseq_r = dtls_uint16_to_int(hs_header->message_seq);
       peer->handshake_params->hs_state.mseq_s = 1;
     }
@@ -3362,11 +3361,13 @@ handle_handshake_msg(dtls_context_t *ctx, dtls_peer_t *peer, session_t *session,
     if (err < 0) {
       return err;
     }
-    if (is_tls_ecdhe_ecdsa_with_aes_128_ccm_8(peer->handshake_params->cipher) &&
-	is_ecdsa_client_auth_supported(ctx))
-      peer->state = DTLS_STATE_WAIT_CLIENTCERTIFICATE;
-    else
-      peer->state = DTLS_STATE_WAIT_CLIENTKEYEXCHANGE;
+    if (peer->state == DTLS_STATE_WAIT_CLIENTHELLO_COOKIE) {
+        if (is_tls_ecdhe_ecdsa_with_aes_128_ccm_8(peer->handshake_params->cipher) &&
+                is_ecdsa_client_auth_supported(ctx))
+            peer->state = DTLS_STATE_WAIT_CLIENTCERTIFICATE;
+        else
+            peer->state = DTLS_STATE_WAIT_CLIENTKEYEXCHANGE;
+    }
 
     /* after sending the ServerHelloDone, we expect the
      * ClientKeyExchange (possibly containing the PSK id),
@@ -3387,6 +3388,7 @@ handle_handshake_msg(dtls_context_t *ctx, dtls_peer_t *peer, session_t *session,
       if (!peer->handshake_params)
         return dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
 
+      LIST_STRUCT_INIT(peer->handshake_params, reorder_queue);
       peer->handshake_params->hs_state.mseq_r = 0;
       peer->handshake_params->hs_state.mseq_s = 0;
     }
@@ -3461,7 +3463,7 @@ handle_handshake(dtls_context_t *ctx, dtls_peer_t *peer, session_t *session,
       return 0;
     }
 
-    netq_t *node = netq_head(&peer->handshake_params->reorder_queue);
+    netq_t *node = netq_head(peer->handshake_params->reorder_queue);
     while (node) {
       dtls_handshake_header_t *node_header = DTLS_HANDSHAKE_HEADER(node->data);
       if (dtls_uint16_to_int(node_header->message_seq) == dtls_uint16_to_int(hs_header->message_seq)) {
@@ -3481,7 +3483,7 @@ handle_handshake(dtls_context_t *ctx, dtls_peer_t *peer, session_t *session,
     n->length = data_length;
     memcpy(n->data, data, data_length);
 
-    if (!netq_insert_node(&peer->handshake_params->reorder_queue, n)) {
+    if (!netq_insert_node(peer->handshake_params->reorder_queue, n)) {
       dtls_warn("cannot add packet to reoder buffer\n");
       netq_node_free(n);
     }
@@ -3498,12 +3500,12 @@ handle_handshake(dtls_context_t *ctx, dtls_peer_t *peer, session_t *session,
     /* We do not know in which order the packet are in the list just search the list for every packet. */
     while (next && peer->handshake_params) {
       next = 0;
-      netq_t *node = netq_head(&peer->handshake_params->reorder_queue);
+      netq_t *node = netq_head(peer->handshake_params->reorder_queue);
       while (node) {
         dtls_handshake_header_t *node_header = DTLS_HANDSHAKE_HEADER(node->data);
 
         if (dtls_uint16_to_int(node_header->message_seq) == peer->handshake_params->hs_state.mseq_r) {
-          netq_remove(&peer->handshake_params->reorder_queue, node);
+          netq_remove(peer->handshake_params->reorder_queue, node);
           next = 1;
           res = handle_handshake_msg(ctx, peer, session, role, peer->state, node->data, node->length);
           if (res < 0) {
@@ -3585,9 +3587,11 @@ handle_alert(dtls_context_t *ctx, dtls_peer_t *peer,
   if (data[0] == DTLS_ALERT_LEVEL_FATAL || data[1] == DTLS_ALERT_CLOSE_NOTIFY) {
     dtls_alert("%d invalidate peer\n", data[1]);
     
-    DEL_PEER(ctx->peers, peer);
+#ifndef WITH_CONTIKI
+    HASH_DEL_PEER(ctx->peers, peer);
+#else /* WITH_CONTIKI */
+    list_remove(ctx->peers, peer);
 
-#ifdef WITH_CONTIKI
 #ifndef NDEBUG
     PRINTF("removed peer [");
     PRINT6ADDR(&peer->session.addr);
@@ -3851,7 +3855,12 @@ dtls_new_context(void *app_data) {
   memset(c, 0, sizeof(dtls_context_t));
   c->app = app_data;
   
+  LIST_STRUCT_INIT(c, sendqueue);
+
 #ifdef WITH_CONTIKI
+  LIST_STRUCT_INIT(c, peers);
+  /* LIST_STRUCT_INIT(c, key_store); */
+  
   process_start(&dtls_retransmit_process, (char *)c);
   PROCESS_CONTEXT_BEGIN(&dtls_retransmit_process);
   /* the retransmit timer must be initialized to some large value */
@@ -3881,21 +3890,24 @@ void dtls_reset_peer(dtls_context_t *ctx, dtls_peer_t *peer)
 
 void
 dtls_free_context(dtls_context_t *ctx) {
-  dtls_peer_t *p, *tmp;
+  dtls_peer_t *p;
 
   if (!ctx) {
     return;
   }
 
+#ifndef WITH_CONTIKI
+  dtls_peer_t *tmp;
+
   if (ctx->peers) {
-#ifdef DTLS_PEERS_NOHASH
-    LL_FOREACH_SAFE(ctx->peers, p, tmp) {
-#else /* DTLS_PEERS_NOHASH */
     HASH_ITER(hh, ctx->peers, p, tmp) {
-#endif /* DTLS_PEERS_NOHASH */
       dtls_destroy_peer(ctx, p, 1);
     }
   }
+#else /* WITH_CONTIKI */
+  for (p = list_head(ctx->peers); p; p = list_item_next(p))
+    dtls_destroy_peer(ctx, p, 1);
+#endif /* WITH_CONTIKI */
 
   free_context(ctx);
 }
@@ -3917,10 +3929,7 @@ dtls_connect_peer(dtls_context_t *ctx, dtls_peer_t *peer) {
   /* set local peer role to client, remote is server */
   peer->role = DTLS_CLIENT;
 
-  if (dtls_add_peer(ctx, peer) < 0) {
-    dtls_alert("cannot add peer\n");
-    return -1;
-  }
+  dtls_add_peer(ctx, peer);
 
   /* send ClientHello with empty Cookie */
   peer->handshake_params = dtls_handshake_new();
@@ -3929,6 +3938,7 @@ dtls_connect_peer(dtls_context_t *ctx, dtls_peer_t *peer) {
 
   peer->handshake_params->hs_state.mseq_r = 0;
   peer->handshake_params->hs_state.mseq_s = 0;
+  LIST_STRUCT_INIT(peer->handshake_params, reorder_queue);
   res = dtls_send_client_hello(ctx, peer, NULL, 0);
   if (res < 0)
     dtls_warn("cannot send ClientHello\n");
@@ -3984,7 +3994,7 @@ dtls_retransmit(dtls_context_t *context, netq_t *node) {
       dtls_ticks(&now);
       node->retransmit_cnt++;
       node->t = now + (node->timeout << node->retransmit_cnt);
-      netq_insert_node(&context->sendqueue, node);
+      netq_insert_node(context->sendqueue, node);
       
       if (node->type == DTLS_CT_HANDSHAKE) {
 	dtls_handshake_header_t *hs_header = DTLS_HANDSHAKE_HEADER(data);
@@ -4020,29 +4030,29 @@ dtls_retransmit(dtls_context_t *context, netq_t *node) {
 static void
 dtls_stop_retransmission(dtls_context_t *context, dtls_peer_t *peer) {
   netq_t *node;
-  node = netq_head(&context->sendqueue); 
+  node = list_head(context->sendqueue); 
 
   while (node) {
     if (dtls_session_equals(&node->peer->session, &peer->session)) {
       netq_t *tmp = node;
-      node = netq_next(node);
-      netq_remove(&context->sendqueue, tmp);
+      node = list_item_next(node);
+      list_remove(context->sendqueue, tmp);
       netq_node_free(tmp);
     } else
-      node = netq_next(node);    
+      node = list_item_next(node);    
   }
 }
 
 void
 dtls_check_retransmit(dtls_context_t *context, clock_time_t *next) {
   dtls_tick_t now;
-  netq_t *node = netq_head(&context->sendqueue);
+  netq_t *node = netq_head(context->sendqueue);
 
   dtls_ticks(&now);
   while (node && node->t <= now) {
-    netq_pop_first(&context->sendqueue);
+    netq_pop_first(context->sendqueue);
     dtls_retransmit(context, node);
-    node = netq_head(&context->sendqueue);
+    node = netq_head(context->sendqueue);
   }
 
   if (next) {
@@ -4068,14 +4078,12 @@ PROCESS_THREAD(dtls_retransmit_process, ev, data)
     if (ev == PROCESS_EVENT_TIMER) {
       if (etimer_expired(&the_dtls_context.retransmit_timer)) {
 	
-	node = netq_head(&the_dtls_context.sendqueue);
+	node = list_head(the_dtls_context.sendqueue);
 	
 	now = clock_time();
 	if (node && node->t <= now) {
-	  dtls_retransmit(&the_dtls_context, node);
-
-          netq_node_free(node);
-	  node = netq_head(&the_dtls_context.sendqueue);
+	  dtls_retransmit(&the_dtls_context, list_pop(the_dtls_context.sendqueue));
+	  node = list_head(the_dtls_context.sendqueue);
 	}
 
 	/* need to set timer to some value even if no nextpdu is available */

@@ -1,19 +1,10 @@
-/*******************************************************************************
+/* netq.h -- Simple packet queue
  *
- * Copyright (c) 2011, 2012, 2013, 2014, 2015 Olaf Bergmann (TZI) and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * and Eclipse Distribution License v. 1.0 which accompanies this distribution.
+ * Copyright (C) 2010--2012 Olaf Bergmann <bergmann@tzi.org>
  *
- * The Eclipse Public License is available at http://www.eclipse.org/legal/epl-v10.html
- * and the Eclipse Distribution License is available at 
- * http://www.eclipse.org/org/documents/edl-v10.php.
- *
- * Contributors:
- *    Olaf Bergmann  - initial API and implementation
- *    Hauke Mehrtens - memory optimization, ECC integration
- *
- *******************************************************************************/
+ * This file is part of the library tinyDTLS. Please see the file
+ * LICENSE for terms of use.
+ */
 
 #ifndef _DTLS_NETQ_H_
 #define _DTLS_NETQ_H_
@@ -79,14 +70,14 @@ void netq_init(void);
  * @param node  The new item to add.
  * @return @c 0 on error, or non-zero if the new item was added.
  */
-int netq_insert_node(netq_t **queue, netq_t *node);
+int netq_insert_node(list_t queue, netq_t *node);
 
 /** Destroys specified node and releases any memory that was allocated
  * for the associated datagram. */
 void netq_node_free(netq_t *node);
 
 /** Removes all items from given queue and frees the allocated storage */
-void netq_delete_all(netq_t **queue);
+void netq_delete_all(list_t queue);
 
 /** Creates a new node suitable for adding to a netq_t queue. */
 netq_t *netq_node_new(size_t size);
@@ -95,17 +86,17 @@ netq_t *netq_node_new(size_t size);
  * Returns a pointer to the first item in given queue or NULL if
  * empty. 
  */
-netq_t *netq_head(netq_t **queue);
+netq_t *netq_head(list_t queue);
 
 netq_t *netq_next(netq_t *p);
-void netq_remove(netq_t **queue, netq_t *p);
+void netq_remove(list_t queue, netq_t *p);
 
 /**
  * Removes the first item in given queue and returns a pointer to the
  * removed element. If queue is empty when netq_pop_first() is called,
  * this function returns NULL.
  */
-netq_t *netq_pop_first(netq_t **queue);
+netq_t *netq_pop_first(list_t queue);
 
 /**@}*/
 
