@@ -391,7 +391,7 @@ init_dtls_client(session_t *dst) {
   };
   
   
-  printf("CoAPS   client ( %s ) started\n", PACKAGE_STRING);
+  PRINTF("CoAPS   client ( %s ) started\n", PACKAGE_STRING);
 
   print_local_addresses();
 
@@ -403,11 +403,17 @@ init_dtls_client(session_t *dst) {
   client_conn = udp_new(&dst->addr, 0, NULL);
   udp_bind(client_conn, LOCAL_PORT);
 
-  printf("set connection address to ");
+  PRINTF("set connection address to ");
   PRINT6ADDR(&dst->addr);
-  printf(":%d\n", uip_ntohs(dst->port));
+  PRINTF(":%d\n", uip_ntohs(dst->port));
 
   //set_log_level(DTLS_LOG_DEBUG); //No no no
+  
+  //DEBUGGING TinyDTLs-Eclipse seem to store the data in 
+  //different format.
+  PRINTF("TinyDTLS-Eclipse IP Addresses: \n");
+  PRINT6ADDR(&dst->addr);
+  
   
   dtls_context_client = dtls_new_context(client_conn);
   if (dtls_context_client)
@@ -463,7 +469,8 @@ PROCESS_THREAD(coaps_client, ev, data)
       dtls_handle_read_client(dtls_context_client);
     } else if (ev == PROCESS_EVENT_TIMER) {
 		
-		
+		//TODO: Uh... what is working COAP_BLOCKING_REQUEST or 
+		// connected ? 
 		if	(etimer_expired(&app_et) && dtls_connected) {
 			coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
 			coap_set_header_uri_path(request, service_urls[uri_switch]);

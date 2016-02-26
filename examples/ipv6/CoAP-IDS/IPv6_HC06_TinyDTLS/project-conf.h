@@ -106,7 +106,7 @@
  *  has been compiled with ./configure (which is something non linked to
  *  Contiki).
  * 
- * 	FIXME: By strange reason the NULL ciphersutie is not supported 
+ * 	FIXME: By strange reason the NULL  ciphersutie is not supported 
  *  by TinyDTLS even if its already defined in the code.
  * 
  * ./configure --with-contiki  --without-debug --without-ecc --without-psk
@@ -122,9 +122,6 @@ define DTLS_PSK 1
 
 */
 
-/* The following are for avoiding  touch apps/TinyDTLS/dtls_config.h
- */
-#define HAVE_UNISTD_H 1
 
 /* *****************  Specific of the motes   ******************************* */ 
 
@@ -153,7 +150,11 @@ define DTLS_PSK 1
 #undef PROCESS_CONF_NO_POCESS_NAMES
 #define PROCESS_CONF_NO_POCESS_NAMES 1
 
-/* er-rest  hace un poco de uso de DEBUG*/ 
+/* er-rest  uses a little DEBUG*/ 
 #undef DEBUG
 #define DEBUG 1 
 
+
+/* TinyDTLS  uses in its internals this one */
+#undef NDEBUG
+#define NDEBUG 1 
