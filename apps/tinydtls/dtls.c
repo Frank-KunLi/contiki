@@ -143,7 +143,8 @@
  * 		we uses a custom (AND static) ssize_t definition.
 */
 #ifdef WITH_CONTIKI
-	#define ssize_t unsigned int
+//	# define ssize_t unsigned int
+	#define ssize_t size_t
 #endif /* WITH_CONTIKI */
 
 static const unsigned char prf_label_master[] = "master secret";
