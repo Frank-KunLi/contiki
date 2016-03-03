@@ -423,6 +423,8 @@ PT_THREAD(coap_blocking_request
   res_block = 0;
   block_error = 0;
 
+  PRINT6ADDR(&remote_ipaddr); //RAFS: DEBUGGING
+  
   do {
     request->mid = coap_get_mid();
     if((state->transaction = coap_new_transaction(request->mid, remote_ipaddr,
