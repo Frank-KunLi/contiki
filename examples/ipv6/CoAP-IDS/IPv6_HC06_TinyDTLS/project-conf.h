@@ -157,4 +157,4 @@ define DTLS_PSK 1
 
 /* TinyDTLS  uses in its internals this one */
 #undef NDEBUG
-#define NDEBUG 1 
+#define NDEBUG 0 
