@@ -157,3 +157,8 @@ define DTLS_PSK 1
 #undef DEBUG
 #define DEBUG 1 
 
+
+/* TinyDTLS  uses in its internals this one */
+#undef NDEBUG
+#define NDEBUG 0 
+

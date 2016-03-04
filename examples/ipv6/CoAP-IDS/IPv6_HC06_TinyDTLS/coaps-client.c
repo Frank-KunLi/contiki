@@ -107,8 +107,8 @@
 #endif /* DTLS_PSK */
 
 
-#define UIP_IP_BUF_   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
-#define UIP_UDP_BUF_  ((struct uip_udp_hdr *)&uip_buf[UIP_LLIPH_LEN])
+#define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
+#define UIP_UDP_BUF  ((struct uip_udp_hdr *)&uip_buf[UIP_LLIPH_LEN])
 
 uip_ipaddr_t server_ipaddr;
 static struct uip_udp_conn *client_conn;
@@ -158,7 +158,7 @@ char *service_urls[NUMBER_OF_URLS] =
 { ".well-known/core" };*/
 static int uri_switch = 0;
 
-
+static struct etimer et; //TODO: This should not be global
 
 /*---------------------------------------------------------------------------*/
 /* NOTE: Relacionados con las llaves con TinyDTLS */
@@ -288,10 +288,12 @@ send_to_peer_client(struct dtls_context_t *ctx,
   uip_ipaddr_copy(&conn->ripaddr, &session->addr);
   conn->rport = session->port;
 
-  printf("send to ");
+#ifdef TINYDTLS_DEBUG  
+  PRINTF(" Sending to peer:  ");
   PRINT6ADDR(&conn->ripaddr);
-  printf(":%u\n", uip_ntohs(conn->rport));
-
+  PRINTF(":%u\n", uip_ntohs(conn->rport));
+#endif
+  
   uip_udp_packet_send(conn, data, len);
 
   /* Restore server connection to allow data from any node */
@@ -320,8 +322,8 @@ dtls_handle_read_client(dtls_context_t *ctx) {
   static session_t session;
 
   if(uip_newdata()) {
-    uip_ipaddr_copy(&session.addr, &UIP_IP_BUF_->srcipaddr);
-    session.port = UIP_UDP_BUF_->srcport;
+    uip_ipaddr_copy(&session.addr, &UIP_IP_BUF->srcipaddr);
+    session.port = UIP_UDP_BUF->srcport;
     session.size = sizeof(session.addr) + sizeof(session.port);
 
 #ifdef TINYDTLS_DEBUG
@@ -391,7 +393,7 @@ init_dtls_client(session_t *dst) {
   };
   
   
-  printf("CoAPS   client ( %s ) started\n", PACKAGE_STRING);
+  PRINTF("CoAPS   client ( %s ) started\n", PACKAGE_STRING);
 
   print_local_addresses();
 
@@ -403,11 +405,17 @@ init_dtls_client(session_t *dst) {
   client_conn = udp_new(&dst->addr, 0, NULL);
   udp_bind(client_conn, LOCAL_PORT);
 
-  printf("set connection address to ");
+  PRINTF("set connection address to ");
   PRINT6ADDR(&dst->addr);
-  printf(":%d\n", uip_ntohs(dst->port));
+  PRINTF(":%d\n", uip_ntohs(dst->port));
 
   //set_log_level(DTLS_LOG_DEBUG); //No no no
+  
+  //DEBUGGING TinyDTLs-Eclipse seem to store the data in 
+  //different format.
+  PRINTF("TinyDTLS-Eclipse IP Addresses: \n");
+  PRINT6ADDR(&dst->addr);
+  
   
   dtls_context_client = dtls_new_context(client_conn);
   if (dtls_context_client)
@@ -431,6 +439,7 @@ PROCESS_THREAD(coaps_client, ev, data)
   static session_t dst_process; 
 
 
+  
   PROCESS_BEGIN();
 
   dtls_init();
@@ -453,48 +462,58 @@ PROCESS_THREAD(coaps_client, ev, data)
   coap_register_as_transaction_handler();
   PRINTF("Initializing CoAPS client!\n");
   
-  connected = dtls_connect(dtls_context_client, &dst_process) >= 0;
   
   etimer_set(&app_et, CLOCK_SECOND * TOGGLE_INTERVAL);
   while(1) {
     PROCESS_YIELD();
-    if(ev == tcpip_event) {
+	
+    if(etimer_expired(&et)) {
+      printf("--Toggle timer--\n");
 
-      dtls_handle_read_client(dtls_context_client);
-    } else if (ev == PROCESS_EVENT_TIMER) {
-		
-		
-		if	(etimer_expired(&app_et) && dtls_connected) {
-			coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
-			coap_set_header_uri_path(request, service_urls[uri_switch]);
+      /* prepare request, TID is set by COAP_BLOCKING_REQUEST() */
+      coap_init_message(request, COAP_TYPE_CON, COAP_POST, 0);
+      coap_set_header_uri_path(request, service_urls[1]);
 
-			PRINTF("--Requesting %s--\n", service_urls[uri_switch]);
+      const char msg[] = "Toggle!";
+
+      coap_set_payload(request, (uint8_t *)msg, sizeof(msg) - 1);
+
+      PRINT6ADDR(&server_ipaddr);
+      PRINTF(" : %u\n", UIP_HTONS(REMOTE_PORT));
+
+      COAP_BLOCKING_REQUEST(&(dst_process.addr), REMOTE_PORT, request,
+                            client_chunk_handler, 
+							dtls_context_client, &dst_process );
+
+      printf("\n--Done--\n");
+
+      etimer_reset(&et);
+
+#if PLATFORM_HAS_BUTTON
+    } else if(ev == sensors_event && data == &button_sensor) {
+
+      /* send a request to notify the end of the process */
+
+      coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
+      coap_set_header_uri_path(request, service_urls[uri_switch]);
+
+      printf("--Requesting %s--\n", service_urls[uri_switch]);
+
+      PRINT6ADDR(&server_ipaddr);
+      PRINTF(" : %u\n", UIP_HTONS(REMOTE_PORT));
+
+      COAP_BLOCKING_REQUEST(&(dst_process.addr), REMOTE_PORT, request,
+                            client_chunk_handler, 
+							dtls_context_client, &dst_process );
+
+      printf("\n--Done--\n");
+
+      uri_switch = (uri_switch + 1) % NUMBER_OF_URLS;
+#endif
+    }
 
 
-			COAP_BLOCKING_REQUEST(&(dst_process.addr), &(dst_process.port), request, 
-									client_chunk_handler, dtls_context_client, &dst_process);
-
-			PRINTF("\n--Done--\n");
-
-			uri_switch = (uri_switch+1) % NUMBER_OF_URLS;
-			etimer_reset(&app_et);
-		}
-		else if (etimer_expired(&app_et)) { 
-			etimer_reset(&app_et);
-			
-		}
-		
-		//If the previous fail we need to try a new connection
-		if (!connected) {
-			connected = dtls_connect(dtls_context_client, &dst_process) >= 0;
-			etimer_set(&app_et, CLOCK_SECOND * TOGGLE_INTERVAL);
-			continue;
-		}
-		/* retransmissions are handled here */
-		coap_check_transactions();
-    
-	}
-  }
+  }/*END-While*/
   
   PROCESS_END();
 }
