@@ -131,13 +131,13 @@ define DTLS_PSK 1
 */
 
 #undef PLATFORM_HAS_BUTTON
-#define PLATFORM_HAS_BUTTON 1
+//#define PLATFORM_HAS_BUTTON 0
 
 #undef PLATFORM_HAS_LEDS
-#define PLATFORM_HAS_LEDS 1
+//#define PLATFORM_HAS_LEDS 0
 
 #undef PLATFORM_HAS_LIGHT
-#define PLATFORM_HAS_LIGHT 1
+//#define PLATFORM_HAS_LIGHT 0
 
 
 /* *****************  CUSTOM   ******************************* */
@@ -155,6 +155,4 @@ define DTLS_PSK 1
 #define DEBUG 1 
 
 
-/* TinyDTLS  uses in its internals this one */
-#undef NDEBUG
-#define NDEBUG 0 
+

@@ -89,7 +89,7 @@
 #define REMOTE_PORT     UIP_HTONS(20220)
 
 /*NOTE: PRobably the most important element */
-#define TOGGLE_INTERVAL 100
+#define TOGGLE_INTERVAL 5
 
 
 //Defines de TinyDTLS
@@ -110,10 +110,10 @@
 #define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
 #define UIP_UDP_BUF  ((struct uip_udp_hdr *)&uip_buf[UIP_LLIPH_LEN])
 
-uip_ipaddr_t server_ipaddr;
 static struct uip_udp_conn *client_conn;
 static dtls_context_t *dtls_context_client;
 
+static struct etimer et; //TODO: This should not be global
 
 
 static uint8_t dtls_connected = 0;
@@ -158,7 +158,9 @@ char *service_urls[NUMBER_OF_URLS] =
 { ".well-known/core" };*/
 static int uri_switch = 0;
 
-static struct etimer et; //TODO: This should not be global
+/*---------------------------------------------------------------------------*/
+/* NOTE: Probably not legacy functions from Lithe */
+
 
 /*---------------------------------------------------------------------------*/
 /* NOTE: Relacionados con las llaves con TinyDTLS */
@@ -258,9 +260,11 @@ void
 client_chunk_handler(void *response)
 {
   const uint8_t *chunk;
-
+	
   int len = coap_get_payload(response, &chunk);
 
+	PRINTF("client_chunk_handler \n");
+	
   printf("|%.*s", len, (char *)chunk);
 }
 
@@ -287,11 +291,19 @@ send_to_peer_client(struct dtls_context_t *ctx,
 
   uip_ipaddr_copy(&conn->ripaddr, &session->addr);
   conn->rport = session->port;
+  
+  //BAD A ND EVIL
+  //uip_ipaddr_copy(&conn->ripaddr, &(dst_process.addr));
+  //conn->rport = uip_ntohs(dst_process.port);
+  
 
 #ifdef TINYDTLS_DEBUG  
-  PRINTF(" Sending to peer:  ");
+  PRINTF(" DEBUG: Sending to peer:  ");
   PRINT6ADDR(&conn->ripaddr);
   PRINTF(":%u\n", uip_ntohs(conn->rport));
+//  PRINTF("  Y la global..r:  ");
+//  PRINT6ADDR(&dst_process.addr);
+//  PRINTF(" : %u\n", uip_ntohs(dst_process.port));  
 #endif
   
   uip_udp_packet_send(conn, data, len);
@@ -346,10 +358,7 @@ static void
 set_connection_address(uip_ipaddr_t *ipaddr)
 {
   uip_ip6addr(ipaddr,0xfe80, 0, 0, 0, 0x0200, 0x0000, 0x0000, 0x0003);  
-//  uip_ip6addr(&server_ipaddr, 0xfe80, 0, 0, 0, 0x0200, 0x0000, 0x0000, 0x0003);
-  //FIXME: The #define es por el coap_request_block
-//  #define SERVER_NODE(ipaddr)   uip_ip6addr(ipaddr, 0xfe80, 0, 0, 0, 0x0200, 0x0000, 0x0000, 0x0003)   
-// SERVER_NODE(&server_ipaddr);
+  
   
   //TODO Something to localize other server.
   
@@ -391,9 +400,6 @@ init_dtls_client(session_t *dst) {
 
 /*FIXME: Aqui deberia ir DTLS_Null (No cifrado)???*/
   };
-  
-  
-  PRINTF("CoAPS   client ( %s ) started\n", PACKAGE_STRING);
 
   print_local_addresses();
 
@@ -405,17 +411,13 @@ init_dtls_client(session_t *dst) {
   client_conn = udp_new(&dst->addr, 0, NULL);
   udp_bind(client_conn, LOCAL_PORT);
 
-  PRINTF("set connection address to ");
+#if TINYDTLS_DEBUG
+  PRINTF(" DEBUG: Client set connection to: ");
   PRINT6ADDR(&dst->addr);
   PRINTF(":%d\n", uip_ntohs(dst->port));
-
-  //set_log_level(DTLS_LOG_DEBUG); //No no no
+#endif
   
-  //DEBUGGING TinyDTLs-Eclipse seem to store the data in 
-  //different format.
-  PRINTF("TinyDTLS-Eclipse IP Addresses: \n");
-  PRINT6ADDR(&dst->addr);
-  
+  //set_log_level(LOG_DEBUG);
   
   dtls_context_client = dtls_new_context(client_conn);
   if (dtls_context_client)
@@ -438,12 +440,9 @@ PROCESS_THREAD(coaps_client, ev, data)
   static coap_packet_t request[1]; 
   static session_t dst_process; 
 
-
-  
   PROCESS_BEGIN();
 
   dtls_init();
-
   init_dtls_client(&dst_process);
 
 
@@ -458,60 +457,63 @@ PROCESS_THREAD(coaps_client, ev, data)
   
 
   /* receives all CoAP messages */
-  //coap_receiver_init(); //NOTE: TOO OLD (legacy)
+  coap_init_engine(); //NOTE: Taken from modern er-coap example
+  
+  //coap_receiver_init(); //NOTE: TOO OLD (legacy)  
   coap_register_as_transaction_handler();
-  PRINTF("Initializing CoAPS client!\n");
   
+  PRINTF("CoAPS   client ( %s ) started\n", PACKAGE_STRING);
   
+
+//WARNING: This will made the client to begin to transmit even before the 
+//		   RPL be ready, so, disabled.
+  
+//   connected = dtls_connect(dtls_context_client, &dst_process) >= 0;
   etimer_set(&app_et, CLOCK_SECOND * TOGGLE_INTERVAL);
+  
   while(1) {
     PROCESS_YIELD();
 	
-    if(etimer_expired(&et)) {
-      printf("--Toggle timer--\n");
+  
+	if(ev == tcpip_event) {
+		dtls_handle_read_client(dtls_context_client);
+	}
+	else if (ev == PROCESS_EVENT_TIMER) { //TODO: Which one is better?
+	//else if (etimer_expired(&et)) {
+		printf("--Toggle timer--\n");
+		
+		if (!connected) {
+			
+#if TINYDTLS_DEBUG
+			PRINTF(" DEBUG: Client set connection to: ");
+			PRINT6ADDR(&dst_process.addr);
+			PRINTF(":%d\n", uip_ntohs(dst_process.port));
+			
 
-      /* prepare request, TID is set by COAP_BLOCKING_REQUEST() */
-      coap_init_message(request, COAP_TYPE_CON, COAP_POST, 0);
-      coap_set_header_uri_path(request, service_urls[1]);
 
-      const char msg[] = "Toggle!";
+#endif			
+			connected = dtls_connect(dtls_context_client, &dst_process);
+			
 
-      coap_set_payload(request, (uint8_t *)msg, sizeof(msg) - 1);
-
-      PRINT6ADDR(&server_ipaddr);
-      PRINTF(" : %u\n", UIP_HTONS(REMOTE_PORT));
-
-      COAP_BLOCKING_REQUEST(&(dst_process.addr), REMOTE_PORT, request,
-                            client_chunk_handler, 
-							dtls_context_client, &dst_process );
-
-      printf("\n--Done--\n");
-
-      etimer_reset(&et);
-
-#if PLATFORM_HAS_BUTTON
-    } else if(ev == sensors_event && data == &button_sensor) {
-
-      /* send a request to notify the end of the process */
-
-      coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
-      coap_set_header_uri_path(request, service_urls[uri_switch]);
-
-      printf("--Requesting %s--\n", service_urls[uri_switch]);
-
-      PRINT6ADDR(&server_ipaddr);
-      PRINTF(" : %u\n", UIP_HTONS(REMOTE_PORT));
-
-      COAP_BLOCKING_REQUEST(&(dst_process.addr), REMOTE_PORT, request,
-                            client_chunk_handler, 
-							dtls_context_client, &dst_process );
-
-      printf("\n--Done--\n");
-
-      uri_switch = (uri_switch + 1) % NUMBER_OF_URLS;
+#if TINYDTLS_DEBUG			
+/* WARNING: With the TinyDTLs-Eclipse version dst_process seem to be 
+ * overwritten (Probably big-endian to little-endian)*/
+			PRINTF(" DEBUG: 2 Client set connection to: ");
+			PRINT6ADDR(&dst_process.addr);
+			PRINTF(":%d\n", uip_ntohs(dst_process.port));
 #endif
-    }
+      }
 
+#if TINYDTLS_DEBUG
+			PRINTF(" DEBUG: Connected state: %d\n",connected );
+#endif
+
+      coap_check_transactions();
+	  printf("\n--Done--\n");
+		//etimer_reset(&et);
+		etimer_set(&et, CLOCK_SECOND * TOGGLE_INTERVAL);
+    
+	}
 
   }/*END-While*/
   
