@@ -40,12 +40,15 @@
  * 		set_connection_address() requires attention if the server IPv6
  * 		addresses will be modified.
  * 
- *      WARNING: If the debugs are configured this client is in the limit 
- * 		of the ROM space.
+ *      WARNING: There is a problem with COAP_BLOCKING_REQUEST. 
+ * 		If the client only support PSK will never realase the blocking 
+ * 		state even after the  DTLS Get Data datagrams are received.
+ * 		If the cipher suite ECC is used, there is  a problem with the 
+ * 		DTLS certificates  datagram.
+ * 		
  */
 
 
-//#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -53,9 +56,10 @@
 #include "contiki-lib.h"
 #include "contiki-net.h"
 
+//TODO: Integrate TinyDTLS to the er-coap's default library? 
 #include "er-coaps-engine.h"
 
-#ifdef PLATFORM_HAS_BUTTON
+#if PLATFORM_HAS_BUTTON
 #include "dev/button-sensor.h"
 #endif
 
@@ -66,10 +70,10 @@
 
 #ifdef TINYDTLS_DEBUG
 #include "debug.h" 
-#endif /* */ 
-//#include "dtls.h"
+#endif
 
-#ifdef TINYDTLS_DEBUG
+
+#ifdef  DEBUG
 #include <stdio.h>
 #define printf(...) printf(__VA_ARGS__)
 #define PRINT6ADDR(addr) printf("[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
@@ -81,18 +85,17 @@
 #endif
 
 
-//Definidos en contiki/core/*udp*
-//#define LOCAL_PORT      UIP_HTONS(COAP_DEFAULT_PORT + 1)
-//#define REMOTE_PORT     UIP_HTONS(COAP_DEFAULT_PORT)
-
+//NOTE: This should CoAP default ports? 
 #define LOCAL_PORT      UIP_HTONS(20220 + 1)
 #define REMOTE_PORT     UIP_HTONS(20220)
 
-/*NOTE: PRobably the most important element */
-#define TOGGLE_INTERVAL 100
+/*NOTE: Probably the most important element */
+#define TOGGLE_INTERVAL 20
 
+#define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
+#define UIP_UDP_BUF  ((struct uip_udp_hdr *)&uip_buf[UIP_LLIPH_LEN])
 
-//Defines de TinyDTLS
+//Define clauses mandatories from TinyDTLS
 #ifdef DTLS_PSK
 /* The PSK information for DTLS */
 /* make sure that default identity and key fit into buffer, i.e.
@@ -107,10 +110,7 @@
 #endif /* DTLS_PSK */
 
 
-#define UIP_IP_BUF_   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
-#define UIP_UDP_BUF_  ((struct uip_udp_hdr *)&uip_buf[UIP_LLIPH_LEN])
 
-uip_ipaddr_t server_ipaddr;
 static struct uip_udp_conn *client_conn;
 static dtls_context_t *dtls_context_client;
 
@@ -150,18 +150,14 @@ static const unsigned char ecdsa_pub_key_y[] = {
 */
 #define NUMBER_OF_URLS 4
 /* leading and ending slashes only for demo purposes, get cropped automatically when setting the Uri-Path */
-//char *service_urls[NUMBER_OF_URLS] =
-//{ ".well-known/core", "./actuators/toggle", "battery/", "error/in//path" };
 char *service_urls[NUMBER_OF_URLS] =
 { ".well-known/core", "./actuators/toggle", "test/hello", "sensors/light"  };
-/*char *service_urls[NUMBER_OF_URLS] =
-{ ".well-known/core" };*/
 static int uri_switch = 0;
 
 
 
 /*---------------------------------------------------------------------------*/
-/* NOTE: Relacionados con las llaves con TinyDTLS */
+/* NOTE: Functions related to  TinyDTLS (0.8.2) and its keys */
 
 #ifdef DTLS_PSK
 static unsigned char psk_id[PSK_ID_MAXLEN] = PSK_DEFAULT_IDENTITY;
@@ -211,10 +207,8 @@ get_psk_info_client(struct dtls_context_t *ctx UNUSED_PARAM,
 
     memcpy(result, psk_key, psk_key_length);
     return psk_key_length;
- 
-	   
-#ifdef TINYDTLS_DEBUG
-	 default:
+  default:
+#if TINYDTLS_DEBUG
     dtls_warn("unsupported request type: %d\n", type);
 #endif
   }
@@ -249,21 +243,24 @@ verify_ecdsa_key(struct dtls_context_t *ctx,
 }
 #endif /* DTLS_ECC */
 
-/*---------------------------------------------------------------------------*/
 
 
 /*---------------------------------------------------------------------------*/
-/*NOTE: Tomados directamente de Lithe (y validados con TinyDTLS 0.8.2*/
+/*NOTE:  The following functions are taken from Lithe with an upgrade from
+ *		 TinyDTLs 0.3.0 to 0.8.2.
+ */
 
-/* This function is will be passed to COAP_BLOCKING_REQUEST() to handle responses. */
+/* This function is will be passed to COAP_BLOCKING_REQUEST() to 
+ * handle responses. 
+ */
 void
 client_chunk_handler(void *response)
 {
   const uint8_t *chunk;
-
   int len = coap_get_payload(response, &chunk);
 
-  PRINTF("|%.*s", len, (char *)chunk);
+	PRINTF("client_chunk_handler \n");
+	PRINTF("|%.*s", len, (char *)chunk);
 }
 
 
@@ -271,9 +268,7 @@ client_chunk_handler(void *response)
 read_from_peer_client(struct dtls_context_t *ctx, 
 	       session_t *session, uint8 *data, size_t len) {
   
-	
 	//NOTE: The data read is a CoAP header with its payload)
-	
 	/* Set upip length*/
   uip_len = len;
   memmove(uip_appdata, data, len);
@@ -289,11 +284,14 @@ send_to_peer_client(struct dtls_context_t *ctx,
 
   uip_ipaddr_copy(&conn->ripaddr, &session->addr);
   conn->rport = session->port;
-
-  PRINTF("send to ");
+  
+  
+#ifdef TINYDTLS_DEBUG
+  PRINTF(" DEBUG: Sending to peer:  ");
   PRINT6ADDR(&conn->ripaddr);
-  PRINTF(":%u\n", uip_ntohs(conn->rport));
-
+  PRINTF(":%u\n", uip_ntohs(conn->rport));  
+#endif
+  
   uip_udp_packet_send(conn, data, len);
 
   /* Restore server connection to allow data from any node */
@@ -322,34 +320,36 @@ dtls_handle_read_client(dtls_context_t *ctx) {
   static session_t session;
 
   if(uip_newdata()) {
-    uip_ipaddr_copy(&session.addr, &UIP_IP_BUF_->srcipaddr);
-    session.port = UIP_UDP_BUF_->srcport;
+    uip_ipaddr_copy(&session.addr, &UIP_IP_BUF->srcipaddr);
+    session.port = UIP_UDP_BUF->srcport;
     session.size = sizeof(session.addr) + sizeof(session.port);
 
-    ((char *)uip_appdata)[uip_datalen()] = 0;
+	((char *)uip_appdata)[uip_datalen()] = 0;
+	
+#ifdef TINYDTLS_DEBUG
     PRINTF("Client received %u Byte message from ", uip_datalen());
     PRINT6ADDR(&session.addr);
     PRINTF(":%d\n", uip_ntohs(session.port));
+#endif
 
     dtls_handle_message(ctx, &session, uip_appdata, uip_datalen());
   }
 }
 
 /*---------------------------------------------------------------------------*/
-/* NOTE: Tomados de TinyDTLS 0.8.2 (basados en el init_dtls de Lithe pero 
-		 actualizados (PARTICULARMENTE LAS LLAVES). */
+/* NOTE: The following functions are taken directly from the TinyDTLS 0.8.2
+ * 		 examples but taking in consideration Lithe's code (particulary 
+ * 		the keys' events)
+ */
 
-//FIXME: This only useful for a single server
 static void
 set_connection_address(uip_ipaddr_t *ipaddr)
 {
+  //FIXME: This only useful for a single serve
   uip_ip6addr(ipaddr,0xfe80, 0, 0, 0, 0x0200, 0x0000, 0x0000, 0x0003);  
-//  uip_ip6addr(&server_ipaddr, 0xfe80, 0, 0, 0, 0x0200, 0x0000, 0x0000, 0x0003);
-  //FIXME: The #define es por el coap_request_block
-//  #define SERVER_NODE(ipaddr)   uip_ip6addr(ipaddr, 0xfe80, 0, 0, 0, 0x0200, 0x0000, 0x0000, 0x0003)   
-// SERVER_NODE(&server_ipaddr);
   
-  //TODO Something to localize other server.
+  
+  //TODO Something to localize other servers?.
   
 }
 
@@ -360,13 +360,13 @@ print_local_addresses(void)
   int i;
   uint8_t state;
 
-  PRINTF("Client IPv6 addresses: ");
+  printf("Client IPv6 addresses: ");
   for(i = 0; i < UIP_DS6_ADDR_NB; i++) {
     state = uip_ds6_if.addr_list[i].state;
     if(uip_ds6_if.addr_list[i].isused &&
        (state == ADDR_TENTATIVE || state == ADDR_PREFERRED)) {
       PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
-      PRINTF("\n");
+      printf("\n");
     }
   }
 }
@@ -386,12 +386,8 @@ init_dtls_client(session_t *dst) {
     .get_ecdsa_key = get_ecdsa_key,
     .verify_ecdsa_key = verify_ecdsa_key
 #endif /* DTLS_ECC */
-
-/*FIXME: Aqui deberia ir DTLS_Null (No cifrado)???*/
+/*FIXME:DTLS_NULL should be considered here?*/
   };
-  
-  
-  PRINTF("CoAPS   client ( %s ) started\n", PACKAGE_STRING);
 
   print_local_addresses();
 
@@ -403,11 +399,13 @@ init_dtls_client(session_t *dst) {
   client_conn = udp_new(&dst->addr, 0, NULL);
   udp_bind(client_conn, LOCAL_PORT);
 
-  PRINTF("set connection address to ");
+#if TINYDTLS_DEBUG
+  PRINTF(" DEBUG: Client set connection to: ");
   PRINT6ADDR(&dst->addr);
   PRINTF(":%d\n", uip_ntohs(dst->port));
-
-  //set_log_level(DTLS_LOG_DEBUG); //No no no
+#endif
+  
+  //set_log_level(LOG_DEBUG);
   
   dtls_context_client = dtls_new_context(client_conn);
   if (dtls_context_client)
@@ -415,7 +413,14 @@ init_dtls_client(session_t *dst) {
 }
 /*---------------------------------------------------------------------------*/
 
-/* NOTE: One single process to run everything
+/* NOTE: One single process to run everything. 
+ * Lithe's code uses 2 process and is only able to work in that way. 
+ * However, with me the double process give problems (the 6 flights are never
+ * completed).  
+ * But with the single process and the cipher suite PSK  the client got stuck 
+ * after receiving the DTLS App Data datagram, so this is reflexed as the 
+ * client stop communicating to the server (but the packets has been generated
+ * and tinydtls' debugs say the process has been completed). 
  */
 
 
@@ -430,11 +435,9 @@ PROCESS_THREAD(coaps_client, ev, data)
   static coap_packet_t request[1]; 
   static session_t dst_process; 
 
-
   PROCESS_BEGIN();
 
   dtls_init();
-
   init_dtls_client(&dst_process);
 
 
@@ -442,7 +445,7 @@ PROCESS_THREAD(coaps_client, ev, data)
 #ifdef TINYDTLS_DEBUG
     dtls_emerg( "cannot create context! \n");
 #else 
-	PRINTF("cannot create context! (Epic fail) \n");
+	printf("cannot create context! (Epic fail) \n");
 #endif
     PROCESS_EXIT();
   }
@@ -456,11 +459,19 @@ PROCESS_THREAD(coaps_client, ev, data)
 #endif
 
   /* receives all CoAP messages */
+  coap_init_engine(); //NOTE: Taken from modern er-coap example
   //coap_receiver_init(); //NOTE: TOO OLD (legacy)
   coap_register_as_transaction_handler();
-  PRINTF("Initializing CoAPS client!\n");
+  PRINTF("CoAPS   client (TinyDTLs %s) started\n", PACKAGE_STRING);
   
-  connected = dtls_connect(dtls_context_client, &dst_process) >= 0;
+/*WARNING: This will made the client to begin to transmit even before the 
+		   RPL be ready, so, disabled. (Yet, in Lithe this is misteriously 
+		   mandatory).  This issue is easy to identify, the first  Client
+		   Hello datagram will have a Sequence number higher to zero 
+		   (probably 3) due the fact TinyDTLs is already trying to connect
+		   from the start. The TOGGLE_INTERVAL value will have a impact too.
+*/
+// connected = dtls_connect(dtls_context_client, &dst_process) >= 0;
   
   etimer_set(&app_et, CLOCK_SECOND * TOGGLE_INTERVAL);
   while(1) {
@@ -469,19 +480,20 @@ PROCESS_THREAD(coaps_client, ev, data)
 
       dtls_handle_read_client(dtls_context_client);
     } else if (ev == PROCESS_EVENT_TIMER) {
-		
-		
-		if	(etimer_expired(&app_et) && dtls_connected) {
+
+		//if	(etimer_expired(&app_et) && dtls_connected) 
+		if	( dtls_connected){
 			coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
 			coap_set_header_uri_path(request, service_urls[uri_switch]);
 
-			PRINTF("--Requesting %s--\n", service_urls[uri_switch]);
+			printf("--Requesting %s--\n", service_urls[uri_switch]);
 
 
 			COAP_BLOCKING_REQUEST(&(dst_process.addr), &(dst_process.port), request, 
 									client_chunk_handler, dtls_context_client, &dst_process);
 
-			PRINTF("\n--Done--\n");
+			//WARNING: Currently the client is stuck before this line.
+			printf("\n--Done--\n");
 
 			uri_switch = (uri_switch+1) % NUMBER_OF_URLS;
 			etimer_reset(&app_et);
@@ -493,7 +505,22 @@ PROCESS_THREAD(coaps_client, ev, data)
 		
 		//If the previous fail we need to try a new connection
 		if (!connected) {
+			
+#if TINYDTLS_DEBUG
+			PRINTF(" DEBUG: Client set connection to: ");
+			PRINT6ADDR(&dst_process.addr);
+			PRINTF(":%d\n", uip_ntohs(dst_process.port));
+#endif				
+			
 			connected = dtls_connect(dtls_context_client, &dst_process) >= 0;
+			
+#if TINYDTLS_DEBUG	&& 0		
+/* WARNING: With the TinyDTLs-Eclipse version dst_process seem to be 
+ * overwritten (Probably big-endian to little-endian) */
+			PRINTF(" DEBUG: 2 Client set connection to: ");
+			PRINT6ADDR(&dst_process.addr);
+			PRINTF(":%d\n", uip_ntohs(dst_process.port));
+#endif			
 			etimer_set(&app_et, CLOCK_SECOND * TOGGLE_INTERVAL);
 			continue;
 		}
