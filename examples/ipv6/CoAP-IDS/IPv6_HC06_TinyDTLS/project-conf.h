@@ -104,27 +104,24 @@
 
 /* WARNING FIXME:  TinyDTLS seems to ignore its own #define once the code 
  *  has been compiled with ./configure (which is something non linked to
- *  Contiki).
+ *  Contiki). So, apps/tinydtls/Makefile.tinydtls is important to check.
  * 
- * 	FIXME: By strange reason the NULL ciphersutie is not supported 
- *  by TinyDTLS even if its already defined in the code.
  * 
- * ./configure --with-contiki  --without-debug --without-ecc --without-psk
+ * Is posible to execute in app/tinydtls:
+ * 1) ./configure --with-contiki  --without-debug --without-ecc --without-psk
+ * 2) ./configure --with-contiki  --without-ecc 
+ * 3) ./configure --with-contiki  --without-psk
+ * 
+ * 1 Will always kill the clients as the NULL Cipher suite is not validated 
+ * by TinyDTLS (though is in the code). The other two disabled one of the 
+ * cipher suites (for saving space). In theory --without-debug should help 
+ * for saving space.
+ *
+ * Remember: autoreconf could be neccesary for generating the configure file. 
  */
 
-/*
-undef DTLS_ECC
-define DTLS_ECC 1
 
 
-undef DTLS_PSK
-define DTLS_PSK 1
-
-*/
-
-/* The following are for avoiding  touch apps/TinyDTLS/dtls_config.h
- */
-#define HAVE_UNISTD_H 1
 
 /* *****************  Specific of the motes   ******************************* */ 
 
@@ -134,31 +131,25 @@ define DTLS_PSK 1
 */
 
 #undef PLATFORM_HAS_BUTTON
-#define PLATFORM_HAS_BUTTON 1
+//#define PLATFORM_HAS_BUTTON 0
 
 #undef PLATFORM_HAS_LEDS
-#define PLATFORM_HAS_LEDS 1
+//#define PLATFORM_HAS_LEDS 0
 
 #undef PLATFORM_HAS_LIGHT
-#define PLATFORM_HAS_LIGHT 1
+//#define PLATFORM_HAS_LIGHT 0
 
 
 /* *****************  CUSTOM   ******************************* */
-
-/*RAFS: We don't always want the tinyDTLS debug */
-#undef TINYDTLS_DEBUG //Paranoia porque me la invente yo
-#define TINYDTLS_DEBUG 1
 
 /* All the following are for trying to save space */ 
 #undef PROCESS_CONF_NO_POCESS_NAMES
 #define PROCESS_CONF_NO_POCESS_NAMES 1
 
-/* er-rest  hace un poco de uso de DEBUG*/ 
+/*RAFS: We don't always want the tinyDTLS debug */
+#undef TINYDTLS_DEBUG //Paranoia porque me la invente yo
+#define TINYDTLS_DEBUG 1
+
+/* PRINTF  only happens if DEBUG is defined (?) (That said Contiki) */ 
 #undef DEBUG
 #define DEBUG 1 
-
-
-/* TinyDTLS  uses in its internals this one */
-#undef NDEBUG
-#define NDEBUG 0 
-
