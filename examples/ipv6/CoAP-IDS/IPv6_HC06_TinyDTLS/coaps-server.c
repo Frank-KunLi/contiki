@@ -61,7 +61,7 @@
 #include "tinydtls.h"
 #include "net/ip/uip-debug.h"
 
-#ifdef TINYDTLS_DEBUG
+#if TINYDTLS_DEBUG
 #include "tinydtls_debug.h" 
 #endif
 
@@ -69,8 +69,8 @@
 #include "powertrace.h"
 #endif
 
-
-#if TINYDTLS_DEBUG
+#define DEBUG 0
+#if  DEBUG
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
 #define PRINT6ADDR(addr) PRINTF("[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
@@ -144,6 +144,7 @@ print_local_addresses(void)
   int i;
   uint8_t state;
 
+#if DEBUG
   PRINTF("Server IPv6 addresses: \n");
   for(i = 0; i < UIP_DS6_ADDR_NB; i++) {
     state = uip_ds6_if.addr_list[i].state;
@@ -153,6 +154,7 @@ print_local_addresses(void)
       PRINTF("\n");
     }
   }
+#endif
 }
 
 
@@ -221,7 +223,9 @@ get_psk_info(struct dtls_context_t *ctx, const session_t *session,
     for (i = 0; i < sizeof(psk)/sizeof(struct keymap_t); i++) {
       if (id_len == psk[i].id_length && memcmp(id, psk[i].id, id_len) == 0) {
 	if (result_length < psk[i].key_length) {
+#if TINYDTLS_DEBUG		
 	  dtls_warn("buffer too small for PSK");
+#endif
 	  return dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
 	}
 
@@ -318,9 +322,10 @@ init_dtls() {
   server_conn = udp_new(NULL, 0, NULL);
   udp_bind(server_conn, LISTENING_PORT);
 
-  //FIXME
+#if TINYDTLS_DEBUG
   dtls_set_log_level(DTLS_LOG_DEBUG);
-
+#endif
+  
   dtls_context = dtls_new_context(server_conn);
   if (dtls_context)
     dtls_set_handler(dtls_context, &cb);
@@ -381,8 +386,12 @@ PROCESS_THREAD(coaps_server_example, ev, data)
   print_local_addresses(); 
   
   if (!dtls_context) {
-    dsrv_log(LOG_EMERG, "cannot create context\n");
-    PROCESS_EXIT();
+#if TINYDTLS_DEBUG
+	  dsrv_log(LOG_EMERG, "cannot create context\n");
+#else
+	  PRINTF("cannot create context\n");
+#endif
+	PROCESS_EXIT();
   }
 
   /*

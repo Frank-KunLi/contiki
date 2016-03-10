@@ -36,7 +36,9 @@
  */
 
 
-
+/* NOTE: For this project, the 6BR router is compiled from their own example
+ * directory. Thus is not using this file for its  configuration.
+ */
 
 /* *****************  Lowest Layers   ******************************* */
 
@@ -63,7 +65,7 @@
  * If the tresshold is not passed there will not be compression WHICH  
  * is bad because force the nodes to have IPv6 and 6LoWPAN properties.
  * Plus for the IDS will be getting hard time with  both  protocols
- * IEEE 802.15.4  seem to have 17.5 bytes + Payload
+ * IEEE 802.15.4  seems to have 17.5 bytes + Payload
  * 6LoWPAN header is 5-6 Bytes + Payload
  * UDP 8 bytes + app data || 6UDP  6 bytes + data
  * 
@@ -86,7 +88,7 @@
 #define UIP_CONF_TCP                   0
 
 /* Increase rpl-border-router IP-buffer when using more than 64. */
-//RAFS TODO: DISABLED (no afecta a mis nodos) 
+//RAFS TODO: DISABLED until detecting benefit in memory space. 
 //#undef REST_MAX_CHUNK_SIZE
 // #define REST_MAX_CHUNK_SIZE            48
 
@@ -123,7 +125,7 @@
 
 
 
-/* *****************  Specific of the motes   ******************************* */ 
+/* *****************  Specific of the motes   ****************************** */
 
 /* DANGER: If you change from wismote to any other validate the values here. 
 		   The objective is save ROM & RAM space.
@@ -140,16 +142,27 @@
 //#define PLATFORM_HAS_LIGHT 0
 
 
-/* *****************  CUSTOM   ******************************* */
+/* *******************************  CUSTOM   ******************************* */
 
 /* All the following are for trying to save space */ 
 #undef PROCESS_CONF_NO_POCESS_NAMES
 #define PROCESS_CONF_NO_POCESS_NAMES 1
 
-/*RAFS: We don't always want the tinyDTLS debug */
-#undef TINYDTLS_DEBUG //Paranoia porque me la invente yo
+/*RAFS: We don't always want the tinyDTLS debug. 
+TINYDTLS_DEBUG display the debug message about the conection 
+between the nodes. */
+#undef TINYDTLS_DEBUG //This is custom from this project.
 #define TINYDTLS_DEBUG 1
 
-/* PRINTF  only happens if DEBUG is defined (?) (That said Contiki) */ 
-#undef DEBUG
-#define DEBUG 1 
+/* DEBUG must be defined per file only. (Otherwise overflow in the rom).
+ * DEBUG display general data for the nodes (type, local and remote 
+ * addresses, etc. 
+ * 
+ */ 
+
+/*PACKAGE_STRING come from app/tinydtls the idea behind this 
+is to  display the current version of TinyDTLS (probably stupid idea) 
+*/ 
+#if !TINYDTLS_DEBUG
+#define  PACKAGE_STRING "No TINYDTLS_DEBUG"
+#endif
