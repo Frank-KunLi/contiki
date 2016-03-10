@@ -65,7 +65,7 @@
 #define LOCAL_PORT      UIP_HTONS(COAP_DEFAULT_PORT + 1)
 #define REMOTE_PORT     UIP_HTONS(COAP_DEFAULT_PORT)
 
-#define TOGGLE_INTERVAL 100
+#define TOGGLE_INTERVAL 5
 
 PROCESS(er_example_client, "6LoWPAN HC06 CoAP");
 AUTOSTART_PROCESSES(&er_example_client);
@@ -150,6 +150,7 @@ PROCESS_THREAD(er_example_client, ev, data)
 
       coap_set_payload(request, (uint8_t *)msg, sizeof(msg) - 1);
 
+	  PRINTF(" Contacting the server: ");
       PRINT6ADDR(&server_ipaddr);
       PRINTF(" : %u\n", UIP_HTONS(REMOTE_PORT));
 
@@ -169,7 +170,7 @@ PROCESS_THREAD(er_example_client, ev, data)
       coap_set_header_uri_path(request, service_urls[uri_switch]);
 
       printf("--Requesting %s--\n", service_urls[uri_switch]);
-	  printf(" Contacting the server: ");
+	  PRINTF(" Contacting the server: ");
       PRINT6ADDR(&server_ipaddr);
       PRINTF(" : %u\n", UIP_HTONS(REMOTE_PORT));
 

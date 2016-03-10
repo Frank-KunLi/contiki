@@ -35,6 +35,20 @@
  *      Raul Armando Fuentes Samaniego <fuentess@telecom...>
  */
 
+/* This project-conf reflex one similar for CoAP Secure  
+ * However, in this project is being used CoAP and thus is possible 
+ * to connect to the nodes using a webbrowser that supports CoAP. 
+ * 
+ * If you are using Cooja you can run the following once the simulation
+ * is running:
+ *     make connect-router-cooja
+ *
+ * Then in Firefox (with the plugin Copper or Cu already installed) 
+ * try the following addresses: 
+ *   http://[aaaa::212:7401:1:101]:80/ (The 6BR Router)
+ *   coap://[aaaa::212:7402:2:202]:5683/ (The CoAP server)
+ */ 
+
 
 /*  Basic configuration for the nodes. 
  *  802.15.4 for the framers. 
@@ -111,9 +125,6 @@
 
 #undef PLATFORM_HAS_LEDS
 #define PLATFORM_HAS_LEDS 1
-
-#undef DEBUG
-#define DEBUG 1
 
 /* Filtering .well-known/core per query can be disabled to save space.
 #undef COAP_LINK_FORMAT_FILTERING
