@@ -72,16 +72,16 @@
 #include "debug.h" 
 #endif
 
-
-#ifdef  DEBUG
+#define DEBUG 1
+#if  DEBUG
 #include <stdio.h>
-#define printf(...) printf(__VA_ARGS__)
-#define PRINT6ADDR(addr) printf("[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
-#define PRINTLLADDR(lladdr) printf("[%02x:%02x:%02x:%02x:%02x:%02x]", (lladdr)->addr[0], (lladdr)->addr[1], (lladdr)->addr[2], (lladdr)->addr[3], (lladdr)->addr[4], (lladdr)->addr[5])
+#define PRINTF(...) printf(__VA_ARGS__)
+#define PRINT6ADDR(addr) PRINTF("[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
+#define PRINTLLADDR(lladdr) PRINTF("[%02x:%02x:%02x:%02x:%02x:%02x]", (lladdr)->addr[0], (lladdr)->addr[1], (lladdr)->addr[2], (lladdr)->addr[3], (lladdr)->addr[4], (lladdr)->addr[5])
 #else
-#define printf(...)
-#define PRINT6ADDR(addr)
-#define PRINTLLADDR(addr)
+#define PRINTF(...) 
+#define PRINT6ADDR(addr) 
+#define PRINTLLADDR(addr) 
 #endif
 
 
@@ -184,7 +184,7 @@ get_psk_info_client(struct dtls_context_t *ctx UNUSED_PARAM,
   switch (type) {
   case DTLS_PSK_IDENTITY:
     if (result_length < psk_id_length) {
-#ifdef TINYDTLS_DEBUG
+#if TINYDTLS_DEBUG
       dtls_warn("cannot set psk_identity -- buffer too small\n");
 #endif
       return dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
@@ -194,12 +194,12 @@ get_psk_info_client(struct dtls_context_t *ctx UNUSED_PARAM,
     return psk_id_length;
   case DTLS_PSK_KEY:
     if (id_len != psk_id_length || memcmp(psk_id, id, id_len) != 0) {
-#ifdef TINYDTLS_DEBUG
+#if TINYDTLS_DEBUG
       dtls_warn("PSK for unknown id requested, exiting\n");
 #endif
       return dtls_alert_fatal_create(DTLS_ALERT_ILLEGAL_PARAMETER);
     } else if (result_length < psk_key_length) {
-#ifdef TINYDTLS_DEBUG		
+#if TINYDTLS_DEBUG		
 		dtls_warn("cannot set psk -- buffer too small\n");
 #endif		
       return dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
@@ -207,8 +207,9 @@ get_psk_info_client(struct dtls_context_t *ctx UNUSED_PARAM,
 
     memcpy(result, psk_key, psk_key_length);
     return psk_key_length;
-  default:
+
 #if TINYDTLS_DEBUG
+	default:
     dtls_warn("unsupported request type: %d\n", type);
 #endif
   }
@@ -286,7 +287,7 @@ send_to_peer_client(struct dtls_context_t *ctx,
   conn->rport = session->port;
   
   
-#ifdef TINYDTLS_DEBUG
+#if TINYDTLS_DEBUG
   PRINTF(" DEBUG: Sending to peer:  ");
   PRINT6ADDR(&conn->ripaddr);
   PRINTF(":%u\n", uip_ntohs(conn->rport));  
@@ -326,7 +327,7 @@ dtls_handle_read_client(dtls_context_t *ctx) {
 
 	((char *)uip_appdata)[uip_datalen()] = 0;
 	
-#ifdef TINYDTLS_DEBUG
+#if TINYDTLS_DEBUG
     PRINTF("Client received %u Byte message from ", uip_datalen());
     PRINT6ADDR(&session.addr);
     PRINTF(":%d\n", uip_ntohs(session.port));
@@ -359,7 +360,7 @@ print_local_addresses(void)
 {
   int i;
   uint8_t state;
-
+#if DEBUG
   printf("Client IPv6 addresses: ");
   for(i = 0; i < UIP_DS6_ADDR_NB; i++) {
     state = uip_ds6_if.addr_list[i].state;
@@ -369,6 +370,7 @@ print_local_addresses(void)
       printf("\n");
     }
   }
+#endif
 }
 
 /*---------------------------------------------------------------------------*/
@@ -442,7 +444,7 @@ PROCESS_THREAD(coaps_client, ev, data)
 
 
   if (!dtls_context_client) {
-#ifdef TINYDTLS_DEBUG
+#if TINYDTLS_DEBUG
     dtls_emerg( "cannot create context! \n");
 #else 
 	printf("cannot create context! (Epic fail) \n");
@@ -451,18 +453,18 @@ PROCESS_THREAD(coaps_client, ev, data)
   }
   
 #if    defined (DTLS_ECC) && defined (TINYDTLS_DEBUG)
-	PRINTF("The client support Cipher suite ECC\n");
+	dtls_debug("The client support Cipher suite ECC\n");
 #endif
 
 #if  defined (DTLS_PSK) && defined (TINYDTLS_DEBUG)
-	PRINTF("The client support Cipher suite PSK\n");
+	dtls_debug("The client support Cipher suite PSK\n");
 #endif
 
   /* receives all CoAP messages */
   coap_init_engine(); //NOTE: Taken from modern er-coap example
   //coap_receiver_init(); //NOTE: TOO OLD (legacy)
   coap_register_as_transaction_handler();
-  PRINTF("CoAPS   client (TinyDTLs %s) started\n", PACKAGE_STRING);
+  PRINTF("CoAPS client (TinyDTLs %s) started\n", PACKAGE_STRING);
   
 /*WARNING: This will made the client to begin to transmit even before the 
 		   RPL be ready, so, disabled. (Yet, in Lithe this is misteriously 
@@ -505,7 +507,6 @@ PROCESS_THREAD(coaps_client, ev, data)
 		
 		//If the previous fail we need to try a new connection
 		if (!connected) {
-			
 #if TINYDTLS_DEBUG
 			PRINTF(" DEBUG: Client set connection to: ");
 			PRINT6ADDR(&dst_process.addr);
