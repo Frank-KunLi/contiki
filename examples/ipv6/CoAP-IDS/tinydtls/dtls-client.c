@@ -37,7 +37,7 @@
 
 #include "tinydtls.h"
 
-#include "debug.h"
+#include "tinydtls_debug.h"
 #include "dtls.h"
 
 /* Added for Contiki 3.0*/
