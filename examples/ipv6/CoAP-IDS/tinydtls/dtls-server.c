@@ -43,7 +43,7 @@
 
 #include "net/ip/uip-debug.h"
 
-#include "tinydtls_debug.h"
+#include "debug.h"
 #include "dtls.h"
 
 
@@ -318,7 +318,6 @@ PROCESS_THREAD(udp_server_process, ev, data)
   while(1) {
     PROCESS_WAIT_EVENT();
     if(ev == tcpip_event) {
-		PRINTF("AJA!");
       dtls_handle_read(dtls_context);
     }
 #if 0
