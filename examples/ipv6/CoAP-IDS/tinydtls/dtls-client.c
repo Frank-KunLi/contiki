@@ -37,13 +37,21 @@
 
 #include "tinydtls.h"
 
-#ifndef DEBUG
-#define DEBUG DEBUG_PRINT
-#endif
-#include "net/ip/uip-debug.h"
-
 #include "debug.h"
 #include "dtls.h"
+
+/* Added for Contiki 3.0*/
+#define DEBUG 1
+#if  DEBUG
+#include <stdio.h>
+#define PRINTF(...) printf(__VA_ARGS__)
+#define PRINT6ADDR(addr) PRINTF("[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
+#define PRINTLLADDR(lladdr) PRINTF("[%02x:%02x:%02x:%02x:%02x:%02x]", (lladdr)->addr[0], (lladdr)->addr[1], (lladdr)->addr[2], (lladdr)->addr[3], (lladdr)->addr[4], (lladdr)->addr[5])
+#else
+#define PRINTF(...) 
+#define PRINT6ADDR(addr) 
+#define PRINTLLADDR(addr) 
+#endif
 
 #ifdef DTLS_PSK
 /* The PSK information for DTLS */
@@ -316,7 +324,7 @@ PROCESS_THREAD(udp_server_process, ev, data)
 
   /* Testing*/
   static struct etimer periodic_timer;
-  #define SEND_INTERVAL		(60 * CLOCK_SECOND)
+  #define SEND_INTERVAL		(2 * CLOCK_SECOND)
   etimer_set(&periodic_timer, SEND_INTERVAL);
   while(1) {
 	  /* Testing */
@@ -327,7 +335,7 @@ PROCESS_THREAD(udp_server_process, ev, data)
 	  
     PROCESS_YIELD();
     if(ev == tcpip_event) {
-	  printf("EVENT!");
+	  PRINTF("EVENT!");
       dtls_handle_read(dtls_context);
     } else if (ev == serial_line_event_message) {
       register size_t len = min(strlen(data), sizeof(buf) - buflen);

@@ -35,13 +35,19 @@
  *      Raul Armando Fuentes Samaniego <fuentess@telecom...>
  */
 
-#undef NETSTACK_CONF_RADIO
-#define NETSTACK_CONF_RADIO   cc2420_driver
-
+/* NOTE: This configuration generate the same hardware configruation that 
+  for the CoAP Secure project. 
+	  However, this project is a ismple echo testing between one client 
+	  and one server.    
+	  
+   NOTE: The server should be able to answer request made by programas 
+   compiled by tinyDTLs from  other devices (e.g. machine running Linux). 
+ */ 
 #undef NETSTACK_CONF_FRAMER
 #define NETSTACK_CONF_FRAMER  framer_802154
 
-
+/* #undef NETSTACK_CONF_RADIO
+#define NETSTACK_CONF_RADIO   cc2420_driver /*
 
 #undef NETSTACK_CONF_MAC
 #define NETSTACK_CONF_MAC     csma_driver
@@ -54,6 +60,8 @@
 #undef SICSLOWPAN_CONF_COMPRESSION
 #define SICSLOWPAN_CONF_COMPRESSION     SICSLOWPAN_COMPRESSION_HC06 
 
+#undef UIP_CONF_TCP
+#define UIP_CONF_TCP                   0
 
 /* Multiplies with chunk size, be aware of memory constraints. */
 #undef COAP_MAX_OPEN_TRANSACTIONS
@@ -61,12 +69,8 @@
 
 
 #undef PLATFORM_HAS_BUTTON
-#define PLATFORM_HAS_BUTTON 1
+#define PLATFORM_HAS_BUTTON 0
 
 #undef PLATFORM_HAS_LEDS
-#define PLATFORM_HAS_LEDS 1
-
-#undef DEBUG
-#define DEBUG 1
-
+#define PLATFORM_HAS_LEDS 0
 
