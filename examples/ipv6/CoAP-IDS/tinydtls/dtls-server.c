@@ -39,13 +39,14 @@
 
 #include "tinydtls.h"
 
-#ifndef DEBUG
-#define DEBUG DEBUG_PRINT
-#endif
+
+
 #include "net/ip/uip-debug.h"
 
-#include "tinydtls_debug.h"
+#include "debug.h"
 #include "dtls.h"
+
+
 
 #ifdef ENABLE_POWERTRACE
 #include "powertrace.h"
@@ -218,27 +219,7 @@ print_local_addresses(void)
   }
 }
 
-#if 0
-static void
-create_rpl_dag(uip_ipaddr_t *ipaddr)
-{
-  struct uip_ds6_addr *root_if;
 
-  root_if = uip_ds6_addr_lookup(ipaddr);
-  if(root_if != NULL) {
-    rpl_dag_t *dag;
-    uip_ipaddr_t prefix;
-    
-    rpl_set_root(RPL_DEFAULT_INSTANCE, ipaddr);
-    dag = rpl_get_any_dag();
-    uip_ip6addr(&prefix, 0xaaaa, 0, 0, 0, 0, 0, 0, 0);
-    rpl_set_prefix(dag, &prefix, 64);
-    PRINTF("created a new RPL dag\n");
-  } else {
-    PRINTF("failed to create a new RPL DAG\n");
-  }
-}
-#endif
 
 void
 init_dtls() {
@@ -295,6 +276,26 @@ init_dtls() {
 }
 
 /*---------------------------------------------------------------------------*/
+/* NOTE: Custom code for Contiki 3.0*/
+
+static void
+set_global_address(void)
+{
+  uip_ipaddr_t ipaddr;
+
+  //BLESSING  Neighbor Discovery Protocol!!!
+  uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0, 0, 0, 0);
+  uip_ip6addr(&ipaddr, 0x2002, 0xdb8, 0, 0, 200, 0, 0, 2);
+  
+  uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
+  //IPv6 Anycast and that is all, NDP do his magic
+  uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
+  
+  
+  //TODO: The servers  can auto-conf but adversiment the address should be good.
+}
+
+/*---------------------------------------------------------------------------*/
 PROCESS_THREAD(udp_server_process, ev, data)
 {
   PROCESS_BEGIN();
@@ -302,6 +303,7 @@ PROCESS_THREAD(udp_server_process, ev, data)
   dtls_init();
   init_dtls();
 
+   set_global_address();
   print_local_addresses();
 
   if (!dtls_context) {
@@ -316,7 +318,6 @@ PROCESS_THREAD(udp_server_process, ev, data)
   while(1) {
     PROCESS_WAIT_EVENT();
     if(ev == tcpip_event) {
-		PRINTF("AJA!");
       dtls_handle_read(dtls_context);
     }
 #if 0
