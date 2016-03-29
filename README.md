@@ -1,5 +1,10 @@
 Contiki CoAPS
 ============================
+
+
+[![DOI](https://zenodo.org/badge/21145/rfuentess/contiki.svg)](https://zenodo.org/badge/latestdoi/21145/rfuentess/contiki)
+
+
 This fork update the Contiki 3.0 to support (BETA) CoAP Secure (CoAPS).
 Uses TinyDTLS 0.8.2 and er-coap. 
 
