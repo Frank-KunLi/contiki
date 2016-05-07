@@ -1,116 +1,109 @@
-6LoWPAN (HC06 Compression) with UDP and CoAP
-Tentative:  Tiny-CoAPS
-===================================================
+Esto va a ser caos, leer este documento para buscar todo lo relacionado a 
+implementar  TinyDTLS en Contiki (o RIOT). 
 
-OBJETIVO GENERAL
--------------
-  Escenario de prueba donde habran nodos usando IPv6 con compresion HC06
-  utilizando (Tiny)DTLS  y comunicación CoAP  
-  Este escenario esta basado en el ejemplo original de examples/er-coap/* 
-  Además  del ejecutado en Lithe (pero aguas que ya hay partes obsoletes)
-  
-  Sus componentes claves:
-      1 6LoWPAN  Border router (6BR)
-      N Clientes CoAPS basado en el "Erbium Example Client" y Lithe
-      1 Servidor CoAP (Solo de ejemplo)
-      
-  WARNING: El cliente original tiene el problema de que posee una IPv6 en
-           hardware. Debo corregir eso a que lo pida como skywebsense.
-  NOTE: Los clientes no buscan info de temperatura, pero francamente puede
-        quedarse con esa configuración.
-  NOTE: Los componentes que intengran al servidor CoAP estarán a un minimo.
-  
-  
-PRELIMINARIES
-------------- 
+Primera pregunta donde estan los cipher suites la configuración por default
+maneja TLS_PSK_WITH_AES_128_CCM_8 cuando el RFC de DTLS indica que es 
+mandatorio TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8. 
+Otra duda, es posible implementer  PSK with DH ?  
+Diffie-Hellman permite conseguir secrecía perfecta.
 
-TODO
+Despues, exactamente cual es el espacio que ocupa en un nodo compatible 
+con Contiki y Riot-OS ? 
 
-COOJA HOWTO
------------
+Posterior a esto, las actuales implementaciones de CoAP en Contiki deben
+ser medidas  para  insertar DTLS en la comunicación 
+Otra opción es a la libcoap
 
-TODO (Inspirarme en er-CoAP)
+Paquetes que de plano creo que no deberian estar compilandose: 
+  CC        ../../../../core/net/ip/dhcpc.c
+  CC        ../../../../core/net/ip/ip64-addr.c
+  CC        ../../../../core/net/ip/psock.c
+  CC        ../../../../core/net/ip/resolv.c
+  CC        ../../../../core/net/ip/simple-udp.c
+  CC        ../../../../core/net/ip/slipdev.c
+  CC        ../../../../core/net/ip/tcp-socket.c
+  CC        ../../../../core/net/ip/tcpip.c
+  CC        ../../../../core/net/ip/udp-socket.c
+  CC        ../../../../core/net/ip/uip-debug.c
+  CC        ../../../../core/net/ip/uip-nameserver.c
+  CC        ../../../../core/net/ip/uip-packetqueue.c
+  CC        ../../../../core/net/ip/uip-split.c
+  CC        ../../../../core/net/ip/uip-udp-packet.c
+  CC        ../../../../core/net/ip/uiplib.c
 
-  La compilacion del proyecto es por separado, ya que se tiene el 6BR 
-  proveniente del ejemplo:
-     contiki/examples/ipv6/rpl-border-router/border-router.c
+ Algo similar courre con MAC, al parecer se va compilando tambien todos los 
+ protocolos de MAC (Null, X, etc.) cuando solo nos interesa ContikiMAC.
+ 
+######################################################################################## 
+ Observacioens de dtls.c/h
+  - Ya invoca debug.h 
+  - Para el conf.h es posible usar WITH_SHA256 = 1 
+     Wait... WITH_CONTIKI tambien aparece, será para el ./configure ?
+  - Hay una serie de Define  para defitinr dtls  version (se obtendra del
+    Makefile original?)
+  - 
   
-  Mientras que el cliente proviene de esta carpeta (Junto a la carpeta sources)
-  El servidor tambien estará en esta carpeta
+  Ok, hay algo raro en linea 124, la estructura cert_asn1_header  es hardcoded 
+  de una llave hay que validad que hace esto.
   
-  TODO
+  Ok, en estos momentos TinyDTLS no posee ningun tipo de compresion (Bueno si)
+  solo soporta TLS_COMPRESSION_NULL 
   
-  Una vez Cooaja arranque se debe  activar el serial sokect (Server) 
-  Y desde consola (en el directorio Home del proyecto)  ejecutar lo siguiente:
+  Ciphers soportados: 
+    TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8
+    TLS_PSK_WITH_AES_128_CCM_8
+    TLS_NULL_WITH_NULL_NULL
+  Por consiguiente puedes configurar TinyDTLS para PSK  y ECDHE-ECDSA
+  (Validar el paper de performance con estos numeros)
+  PERO parece que deben ser definidos (#def DTLS_PSK ó DTLS_ECC )
+  No son mutuamente excluyentes, se podría validar el impacto en memoria con uno 
+  o los dos (pero francamente, solo debería ser uno)
   
-    make connect-router-cooja
+  Si soporta todos los tipos de mensajes para el handshake (o al menos los 
+  reconoce)
+  Tambien los relacionae al ECDHE_ECDSA cipher.
   
-  Con este commando la maquina anfitriona puede conectarse a la red de sensores.
+  MMM el código  maneja la posibilidad de enviar alertas de 
+  DTLS_ALERT_INSUFFICIENT_SECURITY  cuando todo falla (incluyend oque no se acepte
+  TLS_COMPRESSION_NULL) aunque el RFC pide no enviar estos mensajes creo que
+  que aquí no esta  del todo incorrecto.
   
-  NOTE: Es posible usar otras maquinas pero por defecto es la ::1 quien se
-        conecta.
-  WARNING: ESto solo servirá ANTES de integrar CoAPS 
+  check_server_key_exchange_psk( ... )   al parecer  si pueden enviar esos 
+  mensjaes
+  
+  Curioso, TinyDTLS soporta los mensajes Finished, tengo que averiguar porque
+  no los envía
+  
+  
+  En el h todo parece estar en orden, aunque los #define estan al medio 
+############################################################################################
 
-Firefox
------------        
-       
-  Para poder indagar la informacion de los sensores se requiere CoAP,  existe el
-  plugin Copper (Cu) para ello.    En la prueba dos nodos ejemplos listos son:
+######################################################################################## 
+ Observacioens de dtls_config
+ 
+  AJA! Aqui estan  varias cosas comentadas
+  Lo curioso es que DTLS_ECC y DTLS_PSK estan para ser compilados, sin embargo en las pruebas
+  solo PSK aparecía como opción del cliente...
   
-  http://[aaaa::212:7401:1:101]:80/ (6BR Root)
-  coap://[aaaa::212:7402:2:202]:5683/ (Un cliente)
+  mm capaz que esto se altera c on el ./configure YEP. Este archivo se modifica de acuerdo
+  a las configuraciones del ./configure por lo tanto, no debe de ser considerado.
   
-  NOTE: EL ejemplo del 6BR no tiene CoAP implementado por eso usa HTTP. 
-  
-TinyDTLS
------------
+  ./configure --with-contiki  --target=sky --without-ecc --without-debug --build=x86_64-linux-gnu
+  ./configure --with-contiki  --target=sky --without-ecc --without-debug 
+  ./configure  --build=x86_64-linux-gnu
+  ./configure  --build=x86_64-linux-gnu --without-ecc
+  ./configure  --build=x86_64-linux-gnu --without-ecc
 
-  Esto se hace una unica vez, descargar la ultima version de TinyDTLS. 
-  El actual sitio oficial es de Eclipse: 
-     https://projects.eclipse.org/proposals/tinydtls
-  Pero al momento de esto, el código liberado sigue siendo el original
-  en sourceforge:
-     http://sourceforge.net/p/tinydtls/code/ci/master/tree/
-  
-  Para esto, se trata de Downloads/tinydtls-0.8.2.tar.gz
-  TinyDTLS se debe de instalar en contiki/Apps. 
-  Seguir la info de contiki/apps/tinydtls/doc/html/index.html:
-  
-  To use tinyDTLS as Contiki application, place the source code in the directory
-  apps/tinydtls in the Contiki source tree and invoke configure with the option
-  -with-contiki. This will define WITH_CONTIKI in tinydtls.h and include 
-  Makefile.contiki in the main Makefile. To cross-compile for another platform
-  you will need to set your host and build system accordingly. For example, 
-  when configuring for ARM, you would invoke 
-  
-     ./configure --with-contiki --build=x86_64-linux-gnu --host=arm-none-eabi 
-
-      on an x86_64 linux host.
-
-      Then, create a Contiki project with APPS += tinydtls in its Makefile
-  
-TODOs
------
-
-  He aqui un problema. Tengo dos Apps que deben funcionar como una sola: 
-  er-coap y tinydtls.
-  Lo mas sano sera crear una tercera apps con las librerias de ambos 
-  Asegurarme que compile y de ahi ir adpatando er-coap send y receive 
-  con  TinyDTLS. 
-  
-  El problema de overflow que los ejemplos de tinyDTLS provocan   no lo he 
-  podido ubicar pero no creo que se deba a que la lbireria es grande
-  si no alguna falla en esos dos codigos.
-  
-  2016: 
-  Basandome en Lithe ya he podido identificar  los elementos claves. 
-  TinyDTLS y ER-Coap seran una tercera carpeta (sano para evitar tragedias con
-  "Git pull"). 
-  
-  Creo que el unico que requiere sufrir cambios es er-coap. Posiblemente 
-  renombrarlo a tiny-coap para diferenciar la libreria original de mi ad-hoc.
-  
-  Los archivos originales de tinydtls son muy complejos pues no esta pensado
-  solo para Contiki, ir eliminando algunos de ellos (Iniciando con examples
-  y tests)
-  
+  NOTA: AL parecer TLS_NULL_WITH_NULL_NULL no es aceptado en el cliente ni server
+  PERO esta en el codigo
+  Ok, encontrado el problema. El lciente solo puede generar PSK o ECC  y el server
+  solo puede reconocer esos dos. O sea, NULL_NULL nunca sera  una opcion valida de cipher suite.
+######################################################################################## 
+ Observacioens de dtls_time.c|h
+ 
+  No estoy seguro pero croe que WITH_CONTIKI DTLS_ECC DTLS_PSK son para los conf.h
+  o Makefile porque PERO debe haber algo que los active o no.  LS Test solo me 
+  reconocen un unico cipher suite no los dos (Client Hello messg)
+ 
+ 
+ 
