@@ -35,31 +35,27 @@
  *      Raul Armando Fuentes Samaniego <fuentess@telecom...>
  */
 
+#ifndef PROJECT_IPHC_COAP_CONF_H_
+#define PROJECT_IPHC_COAP_CONF_H_
 
-/*  Basic configuration for the nodes. 
+/*  
+ *  Basic configuration for the nodes. 
  *  802.15.4 for the framers. 
  *  CSMA/CA for the transmission 
  *  The CC24240 drivers for the signal 
  *  And the default (contikimac)  RDC driver (not stated here) 
  */
 
+/* This give problem with Z1 motes. */
 //#undef NETSTACK_CONF_RADIO
 //#define NETSTACK_CONF_RADIO   cc2420_driver
 
 #undef NETSTACK_CONF_FRAMER
 #define NETSTACK_CONF_FRAMER  framer_802154
 
-/*  The default confguration for AES-128 is by hardware 
- *  however is not possible to measure in simulation. 
- *  aes_128_driver executed software implementation of AES-128.
- */
-//#undef AES_128_CONF 
-//#define AES_128_CONF cc2420_aes_128_driver //Hardware
-//#define AES_128_CONF aes_128_driver	    //Software
-
-
-#undef NETSTACK_CONF_MAC
-#define NETSTACK_CONF_MAC     csma_driver
+/* TODO: Testing those parameters */
+//#undef NETSTACK_CONF_MAC
+//#define NETSTACK_CONF_MAC     csma_driver
 
 /* 
  * Contikimac requires an small tresshold for the MTU. 
@@ -72,10 +68,7 @@
  * UDP 8 bytes + app data || 6UDP  6 bytes + data
  * 
  * The tresshold will be 23 because should be enough for the app 
- * Though this force do not display TCP and check the ICMPv6 tresshold.
- * 
- * NOTE: For this project the 6BR router is compiled from their own example folder 
- * Thus is not using this file for their own configuration.
+ * Though this force do not display TCP and check the ICMPv6 tresshold. 
  */
 #undef SICSLOWPAN_CONF_COMPRESSION_THRESHOLD
 #define SICSLOWPAN_CONF_COMPRESSION_THRESHOLD     23
@@ -106,14 +99,16 @@
 #define COAP_MAX_OPEN_TRANSACTIONS     4
 
 
+/* Hardware of the mote  */
 #undef PLATFORM_HAS_BUTTON
 #define PLATFORM_HAS_BUTTON 1
 
 #undef PLATFORM_HAS_LEDS
-#define PLATFORM_HAS_LEDS 1
+#define PLATFORM_HAS_LEDS 0
+/* This seems to be only for Sky motes */
+#undef PLATFORM_HAS_LIGHT
+#define PLATFORM_HAS_LIGHT 0
 
-#undef DEBUG
-#define DEBUG 0
 
 /* Filtering .well-known/core per query can be disabled to save space.
 #undef COAP_LINK_FORMAT_FILTERING
@@ -121,3 +116,4 @@
 #undef COAP_PROXY_OPTION_PROCESSING
 #define COAP_PROXY_OPTION_PROCESSING   0  */
 
+#endif
