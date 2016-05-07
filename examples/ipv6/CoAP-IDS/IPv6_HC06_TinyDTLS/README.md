@@ -12,9 +12,14 @@ client.
 
 ## Howto
 
-http://[aaaa::212:7401:1:101]:80/ (6BR Root)
+From the ../rpl-border-router :
 
-make connect-router-cooja
+	make connect-router-cooja
+
+From firefox (Optional): 
+
+   http://[aaaa::212:7401:1:101]:80/ (6BR Root)
+
 
 ### Normal configuration for TinyDTLS 
 
@@ -26,7 +31,7 @@ TinyDTLS need to be "configured" for Contiki, this will generated the special Ma
     ./configure --with-contiki --target=sky --without-psk --without-debug
     ./configure  --build=x86_64-linux-gnu
     ./configure  --build=x86_64-linux-gnu --without-ecc
-    ./configure  --build=x86_64-linux-gnu --without-ecc
+    ./configure  --build=x86_64-linux-gnu --without-psk
 
   __NOTE__: Seems that TLS_NULL_WITH_NULL_NULL is not loaded in the client nor the server, yet is in the code.
   The client is only able to load PSK and/or ECC and the server only identify those two. 
