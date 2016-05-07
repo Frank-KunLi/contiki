@@ -100,15 +100,16 @@
 
 
 /* Hardware of the mote  */
-#undef PLATFORM_HAS_BUTTON
+#ifndef PLATFORM_HAS_BUTTON
 #define PLATFORM_HAS_BUTTON 0
-
-#undef PLATFORM_HAS_LEDS
+#endif
+#ifndef PLATFORM_HAS_LEDS
 #define PLATFORM_HAS_LEDS 0
+#endif
 /* This seems to be only for Sky motes */
-#undef PLATFORM_HAS_LIGHT
+#ifndef PLATFORM_HAS_LIGHT
 #define PLATFORM_HAS_LIGHT 0
-
+#endif
 
 /* Filtering .well-known/core per query can be disabled to save space.
 #undef COAP_LINK_FORMAT_FILTERING
