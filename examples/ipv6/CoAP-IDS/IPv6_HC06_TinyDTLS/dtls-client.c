@@ -42,6 +42,14 @@
 #endif
 #include "net/ip/uip-debug.h"
 
+/*TESTING: Fast disable of the PRINTF */
+#ifdef PRINTF
+#if 0
+#undef PRINTF
+#define PRINTF
+#endif
+#endif
+
 #include "dtls_debug.h"
 #include "dtls.h"
 
@@ -63,10 +71,13 @@
 
 #define MAX_PAYLOAD_LEN 120
 
+/* Odly, the original Contiki's examples put this as global.  */
+static struct etimer pt_timer;
+
 static struct uip_udp_conn *client_conn;
 static dtls_context_t *dtls_context;
-static char buf[200];
-static size_t buflen = 0;
+static char buf[] = "This is a quick test";
+static size_t buflen = 21;
 
 static const unsigned char ecdsa_priv_key[] = {
 			0x41, 0xC1, 0xCB, 0x6B, 0x51, 0x24, 0x7A, 0x14,
@@ -114,9 +125,14 @@ send_to_peer(struct dtls_context_t *ctx,
   uip_ipaddr_copy(&conn->ripaddr, &session->addr);
   conn->rport = session->port;
 
-  PRINTF("send to ");
-  PRINT6ADDR(&conn->ripaddr);
-  PRINTF(":%u\n", uip_ntohs(conn->rport));
+  /*TESTING: Remove once everything works */
+//   PRINTF("send to ");
+//   PRINT6ADDR(&conn->ripaddr);
+//   PRINTF(":%u\n", uip_ntohs(conn->rport));
+//   
+//   PRINTF("Session: ");
+//   PRINT6ADDR(&session->addr);
+//   PRINTF(":%u\n", uip_ntohs(conn->rport));
 
   uip_udp_packet_send(conn, data, len);
 
@@ -204,8 +220,7 @@ verify_ecdsa_key(struct dtls_context_t *ctx,
 }
 #endif /* DTLS_ECC */
 
-PROCESS(udp_server_process, "UDP server process");
-AUTOSTART_PROCESSES(&udp_server_process);
+
 /*---------------------------------------------------------------------------*/
 static void
 dtls_handle_read(dtls_context_t *ctx) {
@@ -245,17 +260,11 @@ print_local_addresses(void)
 static void
 set_connection_address(uip_ipaddr_t *ipaddr)
 {
-#define _QUOTEME(x) #x
-#define QUOTEME(x) _QUOTEME(x)
-#ifdef UDP_CONNECTION_ADDR
-  if(uiplib_ipaddrconv(QUOTEME(UDP_CONNECTION_ADDR), ipaddr) == 0) {
-    PRINTF("UDP client failed to parse address '%s'\n", QUOTEME(UDP_CONNECTION_ADDR));
-  }
-#elif UIP_CONF_ROUTER
-  uip_ip6addr(ipaddr,0xfe80,0,0,0,0x0200,0x0000,0x0000,0x0002);
-#else
-  uip_ip6addr(ipaddr,0xfe80,0,0,0,0x6466,0x6666,0x6666,0x6666);
-#endif /* UDP_CONNECTION_ADDR */
+  /*
+   * NOTE: For this test we use directly a static IPv6 Add. 
+   */
+  //uip_ip6addr(ipaddr,0xfe80,0,0,0,0x0200,0x0000,0x0000,0x0002);
+  uip_ip6addr(ipaddr, 0xaaaa, 0, 0, 0, 0x0200, 0, 0, 2);
 }
 
 void
@@ -272,10 +281,26 @@ init_dtls(session_t *dst) {
     .verify_ecdsa_key = verify_ecdsa_key
 #endif /* DTLS_ECC */
   };
-  PRINTF("DTLS client started\n");
+    
+  PRINTF("DTLS client started");
+#ifdef DTLS_PSK
+PRINTF("PSK-");
+#endif  
+#ifdef DTLS_ECC
+PRINTF("ECC");
+#endif  
+PRINTF("\n");
 
+
+  /*Different scope addresses*/
+  uip_ipaddr_t ipaddr;
+  uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0x0200, 0, 0, 3);
+  //uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
+  uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
+  
   print_local_addresses();
 
+  
   dst->size = sizeof(dst->addr) + sizeof(dst->port);
   dst->port = UIP_HTONS(20220);
 
@@ -283,23 +308,31 @@ init_dtls(session_t *dst) {
   client_conn = udp_new(&dst->addr, 0, NULL);
   udp_bind(client_conn, dst->port);
 
-  PRINTF("set connection address to ");
+  PRINTF("Set conn to: ");
   PRINT6ADDR(&dst->addr);
   PRINTF(":%d\n", uip_ntohs(dst->port));
 
-  dtls_set_log_level(DTLS_LOG_DEBUG);
-
   dtls_context = dtls_new_context(client_conn);
-  if (dtls_context)
+  
+  if (dtls_context){
     dtls_set_handler(dtls_context, &cb);
+  }
+  
+  dtls_set_log_level(DTLS_LOG_INFO);
 }
 
 /*---------------------------------------------------------------------------*/
+
+PROCESS(udp_server_process, "UDP server process");
+AUTOSTART_PROCESSES(&udp_server_process);
+
 PROCESS_THREAD(udp_server_process, ev, data)
 {
   static int connected = 0;
   static session_t dst;
+  static int iBool = 1;
 
+  
   PROCESS_BEGIN();
 
   dtls_init();
@@ -308,30 +341,40 @@ PROCESS_THREAD(udp_server_process, ev, data)
   serial_line_init();
 
   if (!dtls_context) {
-    dtls_emerg("cannot create context\n");
+    dtls_emerg("can't create context\n");
     PROCESS_EXIT();
   }
 
-  while(1) {
-    PROCESS_YIELD();
+	while(iBool) {  
+	/* 
+	 *NOTE:Something is freezing the client and I'm very sure is the PROCESS_YIELD 
+	 */
+    etimer_set(&pt_timer, CLOCK_SECOND*3);
+    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&pt_timer));
+	
     if(ev == tcpip_event) {
       dtls_handle_read(dtls_context);
-    } else if (ev == serial_line_event_message) {
-      register size_t len = min(strlen(data), sizeof(buf) - buflen);
-      memcpy(buf + buflen, data, len);
-      buflen += len;
-      if (buflen < sizeof(buf) - 1)
-	buf[buflen++] = '\n';	/* serial event does not contain LF */
-    }
+    } 
 
+    /*
+	 * TESTING: The original example used an serial connection, for my testing
+	 * is a simple text to transmit (or a CoAP command). 
+	 */
     if (buflen) {
-      if (!connected)
-	connected = dtls_connect(dtls_context, &dst) >= 0;
-      
+      if (connected == 0){
+		connected = dtls_connect(dtls_context, &dst) >= 0;
+	  }
       try_send(dtls_context, &dst);
     }
+    else {
+	  PRINTF("Fnh\n");
+	  iBool = 0;
+	}
   }
   
+  /*TODO: Release the resources */
+  dtls_free_context(dtls_context);
+  connected = 0;
   PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/

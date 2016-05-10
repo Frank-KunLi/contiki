@@ -200,6 +200,61 @@ dtls_handle_read(dtls_context_t *ctx) {
     dtls_handle_message(ctx, &session, uip_appdata, uip_datalen());
   }
 }
+
+void init_dtls() {
+		
+  static dtls_handler_t cb = {
+    .write = send_to_peer,
+    .read  = read_from_peer,
+    .event = NULL,
+#ifdef DTLS_PSK
+    .get_psk_info = get_psk_info,
+#endif /* DTLS_PSK */
+#ifdef DTLS_ECC
+    .get_ecdsa_key = get_ecdsa_key,
+    .verify_ecdsa_key = verify_ecdsa_key
+#endif /* DTLS_ECC */
+  };
+
+  
+
+  PRINTF("DTLS server starting");
+
+#ifdef DTLS_PSK
+PRINTF("PSK-");
+#endif  
+#ifdef DTLS_ECC
+PRINTF("ECC");
+#endif  
+PRINTF("\n");
+
+
+  /*NOTE: This original code from TinyDTLS*/
+#if 0  /* TEST */
+  memset(&tmp_addr, 0, sizeof(rimeaddr_t));
+  if(get_eui64_from_eeprom(tmp_addr.u8));
+#if UIP_CONF_IPV6 && 0
+  memcpy(&uip_lladdr.addr, &tmp_addr.u8, 8);
+#endif
+#endif /* TEST */
+
+  /*Different scope addresses*/
+  uip_ipaddr_t ipaddr;
+  uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0x0200, 0, 0, 2);
+  //uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
+  uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
+  
+  /*The server must be ready to accept any */
+  server_conn = udp_new(NULL, 0, NULL);
+  udp_bind(server_conn, UIP_HTONS(20220));
+
+  dtls_set_log_level(DTLS_LOG_NOTICE);
+
+  dtls_context = dtls_new_context(server_conn);
+  if (dtls_context)
+    dtls_set_handler(dtls_context, &cb);
+}
+
 /*---------------------------------------------------------------------------*/
 static void
 print_local_addresses(void)
@@ -218,81 +273,6 @@ print_local_addresses(void)
   }
 }
 
-#if 0
-static void
-create_rpl_dag(uip_ipaddr_t *ipaddr)
-{
-  struct uip_ds6_addr *root_if;
-
-  root_if = uip_ds6_addr_lookup(ipaddr);
-  if(root_if != NULL) {
-    rpl_dag_t *dag;
-    uip_ipaddr_t prefix;
-    
-    rpl_set_root(RPL_DEFAULT_INSTANCE, ipaddr);
-    dag = rpl_get_any_dag();
-    uip_ip6addr(&prefix, 0xaaaa, 0, 0, 0, 0, 0, 0, 0);
-    rpl_set_prefix(dag, &prefix, 64);
-    PRINTF("created a new RPL dag\n");
-  } else {
-    PRINTF("failed to create a new RPL DAG\n");
-  }
-}
-#endif
-
-void
-init_dtls() {
-  static dtls_handler_t cb = {
-    .write = send_to_peer,
-    .read  = read_from_peer,
-    .event = NULL,
-#ifdef DTLS_PSK
-    .get_psk_info = get_psk_info,
-#endif /* DTLS_PSK */
-#ifdef DTLS_ECC
-    .get_ecdsa_key = get_ecdsa_key,
-    .verify_ecdsa_key = verify_ecdsa_key
-#endif /* DTLS_ECC */
-  };
-#if 0
-  uip_ipaddr_t ipaddr;
-  /* struct uip_ds6_addr *root_if; */
-#endif /* UIP_CONF_ROUTER */
-
-  PRINTF("DTLS server started\n");
-
-#if 0  /* TEST */
-  memset(&tmp_addr, 0, sizeof(rimeaddr_t));
-  if(get_eui64_from_eeprom(tmp_addr.u8));
-#if UIP_CONF_IPV6
-  memcpy(&uip_lladdr.addr, &tmp_addr.u8, 8);
-#endif
-#endif /* TEST */
-
-#if 0
-/*   uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0, 0, 0, 0); */
-/*   uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr); */
-/*   uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF); */
-
-/*   create_rpl_dag(&ipaddr); */
-/* #else */
-  /* uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF); */
-
-  uip_ip6addr(&ipaddr, 0xaaaa, 0,0,0,0x0200,0,0,0x0003);
-  uip_ds6_addr_add(&ipaddr, 0, ADDR_MANUAL);
-
-  create_rpl_dag(&ipaddr);
-#endif /* UIP_CONF_ROUTER */
-
-  server_conn = udp_new(NULL, 0, NULL);
-  udp_bind(server_conn, UIP_HTONS(20220));
-
-  dtls_set_log_level(DTLS_LOG_DEBUG);
-
-  dtls_context = dtls_new_context(server_conn);
-  if (dtls_context)
-    dtls_set_handler(dtls_context, &cb);
-}
 
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(udp_server_process, ev, data)

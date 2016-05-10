@@ -28,10 +28,9 @@ TinyDTLS need to be "configured" for Contiki, this will generated the special Ma
     ./configure --with-contiki --target=sky --without-ecc --without-debug --build=x86_64-linux-gnu
     ./configure --with-contiki --target=sky --without-ecc --without-debug 
     ./configure --with-contiki
-    ./configure --with-contiki --target=sky --without-psk --without-debug
-    ./configure  --build=x86_64-linux-gnu
-    ./configure  --build=x86_64-linux-gnu --without-ecc
-    ./configure  --build=x86_64-linux-gnu --without-psk
+    ./configure --with-contiki --without-psk --without-debug
+    ./configure  --without-psk; make all
+    ./configure  --without-ecc; make all
 
   __NOTE__: Seems that TLS_NULL_WITH_NULL_NULL is not loaded in the client nor the server, yet is in the code.
   The client is only able to load PSK and/or ECC and the server only identify those two. 
