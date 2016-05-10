@@ -33,7 +33,7 @@ APPS += coap-dtls
 APPS += rest-engine
 APPS += tinydtls/aes tinydtls/sha2 tinydtls/ecc tinydtls
 
-
+APPS += er-coaps
 
 
 
