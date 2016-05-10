@@ -65,12 +65,12 @@
       <moteinterface>org.contikios.cooja.mspmote.interfaces.MspDebugOutput</moteinterface>
     </motetype>
     <motetype>
-      org.contikios.cooja.mspmote.Z1MoteType
+      org.contikios.cooja.mspmote.WismoteMoteType
       <identifier>z11</identifier>
       <description>DTLS Client</description>
       <source EXPORT="discard">[CONTIKI_DIR]/examples/ipv6/CoAP-IDS/IPv6_HC06_TinyDTLS/dtls-client.c</source>
-      <commands EXPORT="discard">make dtls-client.z1 TARGET=z1</commands>
-      <firmware EXPORT="copy">[CONTIKI_DIR]/examples/ipv6/CoAP-IDS/IPv6_HC06_TinyDTLS/dtls-client.z1</firmware>
+      <commands EXPORT="discard">make dtls-client.wismote TARGET=wismote</commands>
+      <firmware EXPORT="copy">[CONTIKI_DIR]/examples/ipv6/CoAP-IDS/IPv6_HC06_TinyDTLS/dtls-client.wismote</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.RimeAddress</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
@@ -146,7 +146,7 @@
   <plugin>
     org.contikios.cooja.plugins.SimControl
     <width>280</width>
-    <z>1</z>
+    <z>0</z>
     <height>149</height>
     <location_x>474</location_x>
     <location_y>1</location_y>
@@ -176,7 +176,7 @@
       <coloring />
     </plugin_config>
     <width>811</width>
-    <z>0</z>
+    <z>1</z>
     <height>477</height>
     <location_x>550</location_x>
     <location_y>164</location_y>
