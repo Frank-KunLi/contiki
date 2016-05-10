@@ -38,8 +38,8 @@
 
 #include <string.h>
 #include "rest-engine.h"
-#include "er-coap-separate.h"
-#include "er-coap-transactions.h"
+#include "er-coaps-separate.h"
+#include "er-coaps-transactions.h"
 
 static void res_get_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
 static void res_resume_handler(void);
