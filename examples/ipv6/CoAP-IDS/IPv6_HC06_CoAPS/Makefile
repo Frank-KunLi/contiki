@@ -46,15 +46,10 @@ CONTIKI_WITH_IPV6 = 1
 include $(CONTIKI)/Makefile.include
 
 
-# Things taken from the tinydtls example Makefile
-# Because are not the same syntax
+# Taken from the tinydtls example Makefile
+# They try to optimize more the memory allocation of the program.
 ########################################################################
-#WARNING: The original Makefile from Contiki put the  IPv6 address  
-# in hard way.  As we are to use other configuration, those ines were 
-# transferred to the sourcodes.
 
-#TODO: Averiguar que jodido hace esto
-CFLAGS += -ffunction-sections
 LDFLAGS += -Wl,--gc-sections,--undefined=_reset_vector__,--undefined=InterruptVectors,--undefined=_copy_data_init__,--undefined=_clear_bss_init__,--undefined=_end_of_init__
 
 CFLAGS += -DSHA2_USE_INTTYPES_H
@@ -79,3 +74,19 @@ connect-router-native:	$(CONTIKI)/examples/ipv6/native-border-router/border-rout
 
 connect-minimal:
 	sudo ip address add fdfd::1/64 dev tap0 
+
+# Load the extern TinyDTLS repository to Contiki!
+# TODO: Requires to be better integrated to this Maefile 
+#       Ex: "make all TARGET=xxx"  should be enough
+########################################################################
+APPS_NAME=tinydtls
+APPS_URL=git://github.com/rfuentess/TinyDTLS.git
+APPS_VERSION=Contiki
+APPS_DIR=$(CONTIKI)/apps/$(APPS_NAME)
+
+TinyDTLS-git: 
+	test -d "$(APPS_DIR)" || git clone "$(APPS_URL)" "$(APPS_DIR)"; \
+	cd "$(APPS_DIR)" && git checkout -f "$(APPS_VERSION)"
+
+TinyDTLS-clean:
+	rm -rf "$(PKG_DIR)"
