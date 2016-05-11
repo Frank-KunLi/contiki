@@ -59,7 +59,12 @@
 #include "er-coaps-transactions.h"
 #include "dtls.h"
 #include "tinydtls.h"
+
+#if  0
 #include "dtls_debug.h" 
+#else
+#include "debug.h" 
+#endif
 
 #include "net/ip/uip-debug.h"
 
@@ -277,11 +282,9 @@ dtls_handle_read(dtls_context_t *ctx) {
     session.port = UIP_UDP_BUF->srcport;
     session.size = sizeof(session.addr) + sizeof(session.port);
 	
-#if TINYDTLS_DEBUG	
 	    PRINTF("Server received message from ");
     PRINT6ADDR(&session.addr);
     PRINTF(":%d uip_datalen %d\n", uip_ntohs(session.port),uip_datalen());
-#endif
     dtls_handle_message(ctx, &session, uip_appdata, uip_datalen());
   }
 }
@@ -325,9 +328,7 @@ init_dtls() {
   server_conn = udp_new(NULL, 0, NULL);
   udp_bind(server_conn, LISTENING_PORT);
 
-  //FIXME
   dtls_set_log_level(DTLS_LOG_DEBUG);
-
   dtls_context = dtls_new_context(server_conn);
   if (dtls_context)
     dtls_set_handler(dtls_context, &cb);
