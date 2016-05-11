@@ -60,7 +60,7 @@
 #include "dtls.h"
 #include "tinydtls.h"
 
-#if  0
+#if 1
 #include "dtls_debug.h" 
 #else
 #include "debug.h" 
@@ -72,18 +72,20 @@
 #include "powertrace.h"
 #endif
 
-#ifndef DEBUG
-#define DEBUG 0
-#if DEBUG
+#ifdef DEBUG 
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
 #define PRINT6ADDR(addr) PRINTF("[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
 #define PRINTLLADDR(lladdr) PRINTF("[%02x:%02x:%02x:%02x:%02x:%02x]", (lladdr)->addr[0], (lladdr)->addr[1], (lladdr)->addr[2], (lladdr)->addr[3], (lladdr)->addr[4], (lladdr)->addr[5])
-#endif
+
+#else
+
 #define PRINTF(...)
 #define PRINT6ADDR(addr)
 #define PRINTLLADDR(addr)
+
 #endif
+
 /*
  * Resources to be activated need to be imported through the extern keyword.
  * The build system automatically compiles the resources in the corresponding sub-directory.
@@ -328,7 +330,7 @@ init_dtls() {
   server_conn = udp_new(NULL, 0, NULL);
   udp_bind(server_conn, LISTENING_PORT);
 
-  dtls_set_log_level(DTLS_LOG_DEBUG);
+  dtls_set_log_level(DTLS_LOG_NOTICE);
   dtls_context = dtls_new_context(server_conn);
   if (dtls_context)
     dtls_set_handler(dtls_context, &cb);
