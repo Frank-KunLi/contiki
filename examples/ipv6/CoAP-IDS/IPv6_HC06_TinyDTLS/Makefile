@@ -53,6 +53,6 @@ TinyDTLS-git:
 	cd "$(APPS_DIR)" && git checkout -f "$(APPS_VERSION)"
 
 TinyDTLS-clean:
-	rm -rf "$(PKG_DIR)"
+	rm -rf "$(APPS_DIR)"
 
 include $(CONTIKI)/Makefile.include
