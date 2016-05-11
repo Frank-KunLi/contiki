@@ -52,6 +52,8 @@
 #include "contiki.h"
 #include "contiki-lib.h"
 #include "contiki-net.h"
+#include "net/ip/uip-debug.h"
+
 
 #include "er-coaps-engine.h"
 
@@ -61,23 +63,22 @@
 
 #include <string.h>
 
+#include "dtls.h"
 #include "tinydtls.h"
-//#include "net/ip/uip-debug.h"
-
-//#ifdef TINYDTLS_DEBUG
 #include "dtls_debug.h" 
-//#endif
-//#include "dtls.h"
 
-#ifdef  TINYDTLS_DEBUG
+#ifndef DEBUG
+#define DEBUG 
+#if DEBUG 1
 #include <stdio.h>
-#define printf(...) printf(__VA_ARGS__)
-#define PRINT6ADDR(addr) printf("[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
-#define PRINTLLADDR(lladdr) printf("[%02x:%02x:%02x:%02x:%02x:%02x]", (lladdr)->addr[0], (lladdr)->addr[1], (lladdr)->addr[2], (lladdr)->addr[3], (lladdr)->addr[4], (lladdr)->addr[5])
+#define PRINTF(...) printf(__VA_ARGS__)
+#define PRINT6ADDR(addr) PRINTF("[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
+#define PRINTLLADDR(lladdr) PRINTF("[%02x:%02x:%02x:%02x:%02x:%02x]", (lladdr)->addr[0], (lladdr)->addr[1], (lladdr)->addr[2], (lladdr)->addr[3], (lladdr)->addr[4], (lladdr)->addr[5])
 #else
-#define printf(...)
+#define PRINTF(...)
 #define PRINT6ADDR(addr)
 #define PRINTLLADDR(addr)
+#endif
 #endif
 
 
@@ -92,7 +93,6 @@
 #define TOGGLE_INTERVAL 100
 
 
-//Defines de TinyDTLS
 #ifdef DTLS_PSK
 /* The PSK information for DTLS */
 /* make sure that default identity and key fit into buffer, i.e.
@@ -147,16 +147,15 @@ static const unsigned char ecdsa_pub_key_y[] = {
    
    WARNING: Something happens when the NUMBER_OF_URLS is one
    Memory don't fit anymore (by 2 bytes)
-*/
+ */
 #define NUMBER_OF_URLS 4
 /* leading and ending slashes only for demo purposes, get cropped automatically when setting the Uri-Path */
-//char *service_urls[NUMBER_OF_URLS] =
-//{ ".well-known/core", "./actuators/toggle", "battery/", "error/in//path" };
+
 char *service_urls[NUMBER_OF_URLS] =
-{ ".well-known/core", ".actuators/toggle", "test/hello", "sensors/light"  };
-/*char *service_urls[NUMBER_OF_URLS] =
-{ ".well-known/core" };*/
+{ ".well-known/core", "/actuators/toggle", "battery/", "error/in//path" };
+#if PLATFORM_HAS_BUTTON
 static int uri_switch = 0;
+#endif
 
 
 

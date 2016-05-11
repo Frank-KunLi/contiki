@@ -35,6 +35,8 @@
  *      Raul Armando Fuentes Samaniego <fuentess@telecom...>
  */
 
+#ifndef PROJECT_6COAPS_TINYDTLS_CONF_H_
+#define PROJECT_6COAPS_TINYDTLS_CONF_H_
 
 /*  Basic configuration for the nodes. 
  *  802.15.4 for the framers. 
@@ -111,17 +113,4 @@
 #define COAP_PROXY_OPTION_PROCESSING   0  */
 
 
-#ifdef DTLS_PSK
-/* The PSK information for DTLS */
-/* make sure that default identity and key fit into buffer, i.e.
- * sizeof(PSK_DEFAULT_IDENTITY) - 1 <= PSK_ID_MAXLEN and
- * sizeof(PSK_DEFAULT_KEY) - 1 <= PSK_MAXLEN
-*/
-
-#define PSK_ID_MAXLEN 32
-#define PSK_MAXLEN 32
-#define PSK_DEFAULT_IDENTITY "Client_identity"
-#define PSK_DEFAULT_KEY      "secretPSK"
-#endif /* DTLS_PSK */
-
-
+#endif

@@ -40,7 +40,7 @@
  * 		addresses will be modified.
  */
 
-//#include <stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -48,39 +48,37 @@
 #include "contiki-net.h"
 #include "rest-engine.h"
 
-#include "er-coaps-transactions.h"
 
 //TODO RAFS: Why the CoAP Server don't use er-coap-engine?
 #include "er-coaps-engine.h"
-#include "dtls.h"
 
 #if PLATFORM_HAS_BUTTON
 #include "dev/button-sensor.h"
 #endif
 
+#include "er-coaps-transactions.h"
+#include "dtls.h"
 #include "tinydtls.h"
-#include "net/ip/uip-debug.h"
-
-//#ifdef TINYDTLS_DEBUG
 #include "dtls_debug.h" 
-//#endif
+
+#include "net/ip/uip-debug.h"
 
 #ifdef ENABLE_POWERTRACE
 #include "powertrace.h"
 #endif
 
-
-#if TINYDTLS_DEBUG
+#ifndef DEBUG
+#define DEBUG 0
+#if DEBUG
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
 #define PRINT6ADDR(addr) PRINTF("[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
 #define PRINTLLADDR(lladdr) PRINTF("[%02x:%02x:%02x:%02x:%02x:%02x]", (lladdr)->addr[0], (lladdr)->addr[1], (lladdr)->addr[2], (lladdr)->addr[3], (lladdr)->addr[4], (lladdr)->addr[5])
-#else
+#endif
 #define PRINTF(...)
 #define PRINT6ADDR(addr)
 #define PRINTLLADDR(addr)
 #endif
-
 /*
  * Resources to be activated need to be imported through the extern keyword.
  * The build system automatically compiles the resources in the corresponding sub-directory.
@@ -159,11 +157,21 @@ print_local_addresses(void)
 static int
 read_from_peer(struct dtls_context_t *ctx, 
 	       session_t *session, uint8 *data, size_t len) {
-  
+/* Fast testing */
+#if 0  
+size_t i;
+  for (i = 0; i < len; i++)
+    PRINTF("%c", data[i]);
+
+  /* echo incoming application data */
+  dtls_write(ctx, session, data, len);
+
+#else 
 	/* Set upip length*/
   uip_len = len;
   memmove(uip_appdata, data, len);
   coap_receive(ctx, session);
+#endif
   return 0;
 
 }
@@ -184,7 +192,6 @@ send_to_peer(struct dtls_context_t *ctx,
   memset(&conn->rport, 0, sizeof(conn->rport));
 
   return len;
-
 }
 /*---------------------------------------------------------------------------*/
 
@@ -353,7 +360,8 @@ AUTOSTART_PROCESSES(&coaps_server_example);
 PROCESS_THREAD(coaps_server_example, ev, data)
 {
   PROCESS_BEGIN();
-  
+  //PROCESS_PAUSE(); //??
+
   set_global_address();
 
   dtls_init();
@@ -381,10 +389,17 @@ PROCESS_THREAD(coaps_server_example, ev, data)
   print_local_addresses(); 
   
   if (!dtls_context) {
-    dsrv_log(LOG_EMERG, "cannot create context\n");
-    PROCESS_EXIT();
+	  dsrv_log(LOG_EMERG, "cannot create context\n");
+	PROCESS_EXIT();
   }
 
+#if defined (DTLS_ECC)
+	PRINTF("ECC OK\n");
+#endif
+#if defined (DTLS_PSK)
+	PRINTF("PSK OK\n");
+#endif  
+  
   /*
    * Bind the resources to their Uri-Path.
    * WARNING: Activating twice only means alternate path, not two instances!
@@ -412,10 +427,9 @@ PROCESS_THREAD(coaps_server_example, ev, data)
 	
 	/* TODO: Validate the order of the IF's clauses */ 
     if(ev == tcpip_event) {
-		
-	 /* Any CoAPS  message is handled here. */
+	 /*TESTING: Probably dtls_handle_read should not be invoked here.*/	
       dtls_handle_read(dtls_context);
-	  PRINTF("TCPIP_EVENT proccesed\n");
+	  PRINTF("Packet delivered!\n");
 #if PLATFORM_HAS_BUTTON
     }else if (ev == sensors_event && data == &button_sensor){
 		PRINTF("*******BUTTON*******\n");
@@ -437,4 +451,3 @@ PROCESS_THREAD(coaps_server_example, ev, data)
 
   PROCESS_END();
 }
-/*---------------------------------------------------------------------------*/
