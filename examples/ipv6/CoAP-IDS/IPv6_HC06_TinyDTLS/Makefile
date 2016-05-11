@@ -38,5 +38,21 @@ connect-router-native:	$(CONTIKI)/examples/ipv6/native-border-router/border-rout
 
 connect-minimal:
 	sudo ip address add fdfd::1/64 dev tap0 
+	
+# Load the extern TinyDTLS repository to Contiki!
+# TODO: Requires to be better integrated to this Makefile 
+#       Ex: "make all TARGET=xxx"  should be enough
+########################################################################
+APPS_NAME=tinydtls
+APPS_URL=git://github.com/rfuentess/TinyDTLS.git
+APPS_VERSION=Contiki
+APPS_DIR=$(CONTIKI)/apps/$(APPS_NAME)
+
+TinyDTLS-git: 
+	test -d "$(APPS_DIR)" || git clone "$(APPS_URL)" "$(APPS_DIR)"; \
+	cd "$(APPS_DIR)" && git checkout -f "$(APPS_VERSION)"
+
+TinyDTLS-clean:
+	rm -rf "$(PKG_DIR)"
 
 include $(CONTIKI)/Makefile.include
