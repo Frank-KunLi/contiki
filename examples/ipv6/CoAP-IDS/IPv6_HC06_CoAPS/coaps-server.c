@@ -346,6 +346,8 @@ set_global_address(void)
 
   //BLESSING  Neighbor Discovery Protocol!!!
   uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0, 0, 0, 0);
+  /* ERROR Addresses (current issues)*/
+  //uip_ip6addr(&ipaddr, 0x0, 0, 0, 0, 0, 0, 0x1200, 0x8fe);
   
   uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
   //IPv6 Anycast and that is all, NDP do his magic

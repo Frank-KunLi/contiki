@@ -70,8 +70,8 @@
  * The tresshold will be 23 because should be enough for the app 
  * Though this force do not display TCP and check the ICMPv6 tresshold. 
  */
-#undef SICSLOWPAN_CONF_COMPRESSION_THRESHOLD
-#define SICSLOWPAN_CONF_COMPRESSION_THRESHOLD     23
+// # undef SICSLOWPAN_CONF_COMPRESSION_THRESHOLD
+// # define SICSLOWPAN_CONF_COMPRESSION_THRESHOLD     23
 
 
 // This enable 6LoWPAN + 6UDP (Or Contiki equivalent)

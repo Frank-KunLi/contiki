@@ -51,7 +51,7 @@
 #endif
 
 /* Used for testing different TinyDTLS versions */
-#if  0
+#if  1
 #include "dtls_debug.h" 
 #else
 #include "debug.h" 
@@ -105,6 +105,11 @@ static const unsigned char ecdsa_pub_key_y[] = {
 static void
 try_send(struct dtls_context_t *ctx, session_t *dst) {
   int res;
+  
+  		  PRINTF(" DBG: Write to: ");
+				PRINT6ADDR(&dst->addr);
+				PRINTF(":%d\n", uip_ntohs(dst->port));
+  
   res = dtls_write(ctx, dst, (uint8 *)buf, buflen);
   if (res >= 0) {
     memmove(buf, buf + res, buflen - res);
@@ -116,6 +121,7 @@ static int
 read_from_peer(struct dtls_context_t *ctx, 
 	       session_t *session, uint8 *data, size_t len) {
   size_t i;
+  PRINTF("DATA RCV: ");
   for (i = 0; i < len; i++)
     PRINTF("%c", data[i]);
   return 0;
@@ -268,8 +274,8 @@ set_connection_address(uip_ipaddr_t *ipaddr)
   /*
    * NOTE: For this test we use directly a static IPv6 Add. 
    */
-  //uip_ip6addr(ipaddr,0xfe80,0,0,0,0x0200,0x0000,0x0000,0x0002);
-  uip_ip6addr(ipaddr, 0xaaaa, 0, 0, 0, 0x0200, 0, 0, 2);
+  uip_ip6addr(ipaddr,0xfe80,0,0,0,0x0200,0x0000,0x0000,0x0002);
+  //uip_ip6addr(ipaddr, 0xaaaa, 0, 0, 0, 0x0200, 0, 0, 2);
 }
 
 void
@@ -287,7 +293,7 @@ init_dtls(session_t *dst) {
 #endif /* DTLS_ECC */
   };
     
-  PRINTF("DTLS client started");
+  PRINTF("DTLS client ( %s ) started\n", PACKAGE_STRING);
 #ifdef DTLS_PSK
 PRINTF("PSK-");
 #endif  
@@ -299,7 +305,8 @@ PRINTF("\n");
 
   /*Different scope addresses*/
   uip_ipaddr_t ipaddr;
-  uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0x0200, 0, 0, 3);
+//  uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0x0200, 0, 0, 3);
+uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0x0200, 0, 0, 3);
   //uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
   uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
   
@@ -350,6 +357,7 @@ PROCESS_THREAD(udp_server_process, ev, data)
     PROCESS_EXIT();
   }
 
+  connected = dtls_connect(dtls_context, &dst) >= 0;
 	while(iBool) {  
 	/* 
 	 *NOTE:Something is freezing the client and I'm very sure is the PROCESS_YIELD 
@@ -367,12 +375,16 @@ PROCESS_THREAD(udp_server_process, ev, data)
 	 */
     if (buflen) {
       if (connected == 0){
+		  PRINTF(" DEBUG: Client set connection to: ");
+				PRINT6ADDR(&dst.addr);
+				PRINTF(":%d\n", uip_ntohs(dst.port));
 		connected = dtls_connect(dtls_context, &dst) >= 0;
 	  }
+	  PRINTF("TRY SND");
       try_send(dtls_context, &dst);
     }
     else {
-	  PRINTF("Fnh\n");
+	  PRINTF("Finish\n");
 	  iBool = 0;
 	}
   }

@@ -65,7 +65,7 @@
 #include "tinydtls.h"
 
 /* Used for testing different TinyDTLS versions */
-#if 0
+#if 1
 #include "dtls_debug.h" 
 #else
 #include "debug.h" 
@@ -97,7 +97,7 @@
 #define REMOTE_PORT     UIP_HTONS(20220)
 
 /*NOTE: PRobably the most important element */
-#define TOGGLE_INTERVAL 100
+#define TOGGLE_INTERVAL 1
 
 
 #ifdef DTLS_PSK
@@ -195,9 +195,7 @@ get_psk_info_client(struct dtls_context_t *ctx UNUSED_PARAM,
   switch (type) {
   case DTLS_PSK_IDENTITY:
     if (result_length < psk_id_length) {
-#if TINYDTLS_DEBUG
       dtls_warn("cannot set psk_identity -- buffer too small\n");
-#endif
       return dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
     }
 
@@ -205,23 +203,17 @@ get_psk_info_client(struct dtls_context_t *ctx UNUSED_PARAM,
     return psk_id_length;
   case DTLS_PSK_KEY:
     if (id_len != psk_id_length || memcmp(psk_id, id, id_len) != 0) {
-#if TINYDTLS_DEBUG
       dtls_warn("PSK for unknown id requested, exiting\n");
-#endif
       return dtls_alert_fatal_create(DTLS_ALERT_ILLEGAL_PARAMETER);
     } else if (result_length < psk_key_length) {
-#if TINYDTLS_DEBUG		
 		dtls_warn("cannot set psk -- buffer too small\n");
-#endif		
       return dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
     }
 
     memcpy(result, psk_key, psk_key_length);
     return psk_key_length;
   default:
-//#if TINYDTLS_DEBUG
     dtls_warn("unsupported request type: %d\n", type);
-//#endif
   }
 
   return dtls_alert_fatal_create(DTLS_ALERT_INTERNAL_ERROR);
@@ -330,12 +322,10 @@ dtls_handle_read_client(dtls_context_t *ctx) {
     session.port = UIP_UDP_BUF_->srcport;
     session.size = sizeof(session.addr) + sizeof(session.port);
 
-#ifdef TINYDTLS_DEBUG
     ((char *)uip_appdata)[uip_datalen()] = 0;
     PRINTF("Client received %u Byte message from ", uip_datalen());
     PRINT6ADDR(&session.addr);
     PRINTF(":%d\n", uip_ntohs(session.port));
-#endif
 
     dtls_handle_message(ctx, &session, uip_appdata, uip_datalen());
   }
@@ -381,13 +371,13 @@ print_local_addresses(void)
   int i;
   uint8_t state;
 
-  printf("Client IPv6 addresses: ");
+  PRINTF("Client IPv6 addresses: ");
   for(i = 0; i < UIP_DS6_ADDR_NB; i++) {
     state = uip_ds6_if.addr_list[i].state;
     if(uip_ds6_if.addr_list[i].isused &&
        (state == ADDR_TENTATIVE || state == ADDR_PREFERRED)) {
       PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
-      printf("\n");
+      PRINTF("\n");
     }
   }
 }

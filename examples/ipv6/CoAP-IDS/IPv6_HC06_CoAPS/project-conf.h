@@ -68,8 +68,8 @@
  * NOTE: For this project the 6BR router is compiled from their own example folder 
  * Thus is not using this file for their own configuration.
  */
-#undef SICSLOWPAN_CONF_COMPRESSION_THRESHOLD
-#define SICSLOWPAN_CONF_COMPRESSION_THRESHOLD     23
+// # undef SICSLOWPAN_CONF_COMPRESSION_THRESHOLD
+// # define SICSLOWPAN_CONF_COMPRESSION_THRESHOLD     23
 
 
 // This enable 6LoWPAN + 6UDP (Or Contiki equivalent)

@@ -31,9 +31,6 @@
 #include "contiki-lib.h"
 #include "contiki-net.h"
 
-#if UIP_CONF_IPV6_RPL
-#include "net/rpl/rpl.h"
-#endif /* UIP_CONF_IPV6_RPL */
 
 #include <string.h>
 
@@ -45,7 +42,7 @@
 #include "net/ip/uip-debug.h"
 
 /* Used for testing different TinyDTLS versions */
-#if  0
+#if  1
 #include "dtls_debug.h" 
 #else
 #include "debug.h" 
@@ -202,6 +199,9 @@ dtls_handle_read(dtls_context_t *ctx) {
     session.port = UIP_UDP_BUF->srcport;
     session.size = sizeof(session.addr) + sizeof(session.port);
     
+    PRINTF("Server received message from ");
+    PRINT6ADDR(&session.addr);
+    PRINTF(":%d uip_datalen %d\n", uip_ntohs(session.port),uip_datalen());
     dtls_handle_message(ctx, &session, uip_appdata, uip_datalen());
   }
 }
@@ -223,7 +223,7 @@ void init_dtls() {
 
   
 
-  PRINTF("DTLS server starting");
+  PRINTF("DTLS server (%s) started\n", PACKAGE_STRING);
 
 #ifdef DTLS_PSK
 PRINTF("PSK-");
@@ -234,14 +234,8 @@ PRINTF("ECC");
 PRINTF("\n");
 
 
-  /*NOTE: This original code from TinyDTLS*/
-#if 0  /* TEST */
-  memset(&tmp_addr, 0, sizeof(rimeaddr_t));
-  if(get_eui64_from_eeprom(tmp_addr.u8));
-#if UIP_CONF_IPV6 && 0
-  memcpy(&uip_lladdr.addr, &tmp_addr.u8, 8);
-#endif
-#endif /* TEST */
+//  memset(&tmp_addr, 0, sizeof(rimeaddr_t));
+//  if(get_eui64_from_eeprom(tmp_addr.u8));
 
   /*Different scope addresses*/
   uip_ipaddr_t ipaddr;
@@ -303,13 +297,6 @@ PROCESS_THREAD(udp_server_process, ev, data)
     if(ev == tcpip_event) {
       dtls_handle_read(dtls_context);
     }
-#if 0
-    if (bytes_read > 0) {
-      /* dtls_handle_message(dtls_context, &the_session, readbuf, bytes_read); */
-      read_from_peer(dtls_context, &the_session, readbuf, bytes_read);
-    }
-    dtls_handle_message(ctx, &session, uip_appdata, bytes_read);
-#endif
   }
 
   PROCESS_END();
