@@ -64,7 +64,7 @@
 #include "dtls.h"
 #include "tinydtls.h"
 
-#if 1
+#if 0
 #include "dtls_debug.h" 
 #else
 #include "debug.h" 
@@ -348,7 +348,7 @@ dtls_handle_read_client(dtls_context_t *ctx) {
 static void
 set_connection_address(uip_ipaddr_t *ipaddr)
 {
-  uip_ip6addr(ipaddr,0xfe80, 0, 0, 0, 0x0200, 0x0000, 0x0000, 0x0003);  
+  uip_ip6addr(ipaddr,0xfe80, 0, 0, 0, 0x0200, 0x0000, 0x0000, 0x0001);  
 //  uip_ip6addr(&server_ipaddr, 0xfe80, 0, 0, 0, 0x0200, 0x0000, 0x0000, 0x0003);
   //FIXME: The #define es por el coap_request_block
 //  #define SERVER_NODE(ipaddr)   uip_ip6addr(ipaddr, 0xfe80, 0, 0, 0, 0x0200, 0x0000, 0x0000, 0x0003)   
@@ -358,6 +358,21 @@ set_connection_address(uip_ipaddr_t *ipaddr)
   
 }
 
+static void
+set_global_address(void)
+{
+  uip_ipaddr_t ipaddr;
+
+  //BLESSING  Neighbor Discovery Protocol!!!
+  uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0, 0, 0, 0);
+  
+  uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
+  //IPv6 Anycast and that is all, NDP do his magic
+  uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
+  
+  
+  //TODO: The servers  can auto-conf but adversiment the address should be good.
+}
 
 static void
 print_local_addresses(void)
@@ -398,6 +413,7 @@ init_dtls_client(session_t *dst) {
   
   PRINTF("CoAPS   client ( %s ) started\n", PACKAGE_STRING);
 
+  set_global_address();
   print_local_addresses();
 
   dst->size = sizeof(dst->addr) + sizeof(dst->port);
