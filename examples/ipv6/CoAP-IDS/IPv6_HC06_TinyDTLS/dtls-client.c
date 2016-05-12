@@ -50,7 +50,12 @@
 #endif
 #endif
 
-#include "dtls_debug.h"
+/* Used for testing different TinyDTLS versions */
+#if  0
+#include "dtls_debug.h" 
+#else
+#include "debug.h" 
+#endif
 #include "dtls.h"
 
 #ifdef DTLS_PSK

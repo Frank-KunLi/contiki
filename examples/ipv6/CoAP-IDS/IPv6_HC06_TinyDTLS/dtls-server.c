@@ -44,7 +44,12 @@
 #endif
 #include "net/ip/uip-debug.h"
 
-#include "dtls_debug.h"
+/* Used for testing different TinyDTLS versions */
+#if  0
+#include "dtls_debug.h" 
+#else
+#include "debug.h" 
+#endif
 #include "dtls.h"
 
 #ifdef ENABLE_POWERTRACE

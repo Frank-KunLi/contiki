@@ -60,6 +60,7 @@
 #include "dtls.h"
 #include "tinydtls.h"
 
+/* Used for testing different TinyDTLS versions */
 #if 1
 #include "dtls_debug.h" 
 #else
