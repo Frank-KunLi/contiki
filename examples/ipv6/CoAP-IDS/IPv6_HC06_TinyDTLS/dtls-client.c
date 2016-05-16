@@ -106,9 +106,10 @@ static void
 try_send(struct dtls_context_t *ctx, session_t *dst) {
   int res;
   
-  		  PRINTF(" DBG: Write to: ");
-				PRINT6ADDR(&dst->addr);
-				PRINTF(":%d\n", uip_ntohs(dst->port));
+  /*TESTING: Remove once everything works */
+   PRINTF("TRY_SEND: Session - ");
+   PRINT6ADDR(&dst->addr);
+   PRINTF(":%u -\n", uip_ntohs(dst->port));
   
   res = dtls_write(ctx, dst, (uint8 *)buf, buflen);
   if (res >= 0) {
@@ -133,17 +134,18 @@ send_to_peer(struct dtls_context_t *ctx,
 
   struct uip_udp_conn *conn = (struct uip_udp_conn *)dtls_get_app_data(ctx);
 
+  /*TESTING: Remove once everything works */
+//   PRINTF("SEND_TO_PEER: ");
+//   PRINT6ADDR(&conn->ripaddr);
+//   PRINTF(":%u\n", uip_ntohs(conn->rport));
+  
   uip_ipaddr_copy(&conn->ripaddr, &session->addr);
   conn->rport = session->port;
 
-  /*TESTING: Remove once everything works */
-//   PRINTF("send to ");
-//   PRINT6ADDR(&conn->ripaddr);
-//   PRINTF(":%u\n", uip_ntohs(conn->rport));
 //   
-//   PRINTF("Session: ");
-//   PRINT6ADDR(&session->addr);
-//   PRINTF(":%u\n", uip_ntohs(conn->rport));
+   PRINTF("SEND_TO_PEER: Session: ");
+   PRINT6ADDR(&session->addr);
+   PRINTF(":%u\n", uip_ntohs(session->port));
 
   uip_udp_packet_send(conn, data, len);
 
@@ -321,16 +323,17 @@ uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0x0200, 0, 0, 3);
   udp_bind(client_conn, dst->port);
 
   PRINTF("Set conn to: ");
-  PRINT6ADDR(&dst->addr);
-  PRINTF(":%d\n", uip_ntohs(dst->port));
+  PRINT6ADDR(&client_conn->ripaddr);
+  PRINTF(":%d ", UIP_HTONS(client_conn->rport));
+  PRINTF("Local port: %d\n", UIP_HTONS(client_conn->lport) );
+
+  dtls_set_log_level(DTLS_LOG_INFO);
 
   dtls_context = dtls_new_context(client_conn);
-  
   if (dtls_context){
     dtls_set_handler(dtls_context, &cb);
   }
   
-  dtls_set_log_level(DTLS_LOG_INFO);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -357,8 +360,7 @@ PROCESS_THREAD(udp_server_process, ev, data)
     PROCESS_EXIT();
   }
 
-  connected = dtls_connect(dtls_context, &dst) >= 0;
-	while(iBool) {  
+  while(iBool) {  
 	/* 
 	 *NOTE:Something is freezing the client and I'm very sure is the PROCESS_YIELD 
 	 */
@@ -379,8 +381,9 @@ PROCESS_THREAD(udp_server_process, ev, data)
 				PRINT6ADDR(&dst.addr);
 				PRINTF(":%d\n", uip_ntohs(dst.port));
 		connected = dtls_connect(dtls_context, &dst) >= 0;
+		continue; //To remove?
 	  }
-	  PRINTF("TRY SND");
+	  
       try_send(dtls_context, &dst);
     }
     else {
