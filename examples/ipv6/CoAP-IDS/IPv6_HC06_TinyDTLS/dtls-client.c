@@ -319,8 +319,8 @@ uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0x0200, 0, 0, 3);
   dst->port = UIP_HTONS(20220);
 
   set_connection_address(&dst->addr);
-  client_conn = udp_new(&dst->addr, 0, NULL);
-  udp_bind(client_conn, dst->port);
+  client_conn = udp_new(&dst->addr, dst->port, NULL);
+  udp_bind(client_conn, UIP_HTONS(20221));
 
   PRINTF("Set conn to: ");
   PRINT6ADDR(&client_conn->ripaddr);
