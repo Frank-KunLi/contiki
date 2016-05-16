@@ -45,12 +45,12 @@
       <moteinterface>org.contikios.cooja.mspmote.interfaces.SkyTemperature</moteinterface>
     </motetype>
     <motetype>
-      org.contikios.cooja.mspmote.WismoteMoteType
+      org.contikios.cooja.mspmote.Exp5438MoteType
       <identifier>wismote1</identifier>
       <description>TinyDTLS Server</description>
       <source EXPORT="discard">[CONTIKI_DIR]/examples/ipv6/CoAP-IDS/IPv6_HC06_TinyDTLS/dtls-server.c</source>
-      <commands EXPORT="discard">make dtls-server.wismote TARGET=wismote</commands>
-      <firmware EXPORT="copy">[CONTIKI_DIR]/examples/ipv6/CoAP-IDS/IPv6_HC06_TinyDTLS/dtls-server.wismote</firmware>
+      <commands EXPORT="discard">make dtls-server.exp5438 TARGET=exp5438</commands>
+      <firmware EXPORT="copy">[CONTIKI_DIR]/examples/ipv6/CoAP-IDS/IPv6_HC06_TinyDTLS/dtls-server.exp5438</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.RimeAddress</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
@@ -58,19 +58,19 @@
       <moteinterface>org.contikios.cooja.interfaces.MoteAttributes</moteinterface>
       <moteinterface>org.contikios.cooja.mspmote.interfaces.MspClock</moteinterface>
       <moteinterface>org.contikios.cooja.mspmote.interfaces.MspMoteID</moteinterface>
-      <moteinterface>org.contikios.cooja.mspmote.interfaces.MspButton</moteinterface>
       <moteinterface>org.contikios.cooja.mspmote.interfaces.Msp802154Radio</moteinterface>
+      <moteinterface>org.contikios.cooja.mspmote.interfaces.MspDebugOutput</moteinterface>
+      <moteinterface>org.contikios.cooja.mspmote.interfaces.MspButton</moteinterface>
       <moteinterface>org.contikios.cooja.mspmote.interfaces.MspDefaultSerial</moteinterface>
       <moteinterface>org.contikios.cooja.mspmote.interfaces.MspLED</moteinterface>
-      <moteinterface>org.contikios.cooja.mspmote.interfaces.MspDebugOutput</moteinterface>
     </motetype>
     <motetype>
-      org.contikios.cooja.mspmote.WismoteMoteType
+      org.contikios.cooja.mspmote.Exp5438MoteType
       <identifier>z11</identifier>
       <description>DTLS Client</description>
       <source EXPORT="discard">[CONTIKI_DIR]/examples/ipv6/CoAP-IDS/IPv6_HC06_TinyDTLS/dtls-client.c</source>
-      <commands EXPORT="discard">make dtls-client.wismote TARGET=wismote</commands>
-      <firmware EXPORT="copy">[CONTIKI_DIR]/examples/ipv6/CoAP-IDS/IPv6_HC06_TinyDTLS/dtls-client.wismote</firmware>
+      <commands EXPORT="discard">make dtls-client.exp5438 TARGET=exp5438</commands>
+      <firmware EXPORT="copy">[CONTIKI_DIR]/examples/ipv6/CoAP-IDS/IPv6_HC06_TinyDTLS/dtls-client.exp5438</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.RimeAddress</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.IPAddress</moteinterface>
@@ -78,11 +78,11 @@
       <moteinterface>org.contikios.cooja.interfaces.MoteAttributes</moteinterface>
       <moteinterface>org.contikios.cooja.mspmote.interfaces.MspClock</moteinterface>
       <moteinterface>org.contikios.cooja.mspmote.interfaces.MspMoteID</moteinterface>
-      <moteinterface>org.contikios.cooja.mspmote.interfaces.MspButton</moteinterface>
       <moteinterface>org.contikios.cooja.mspmote.interfaces.Msp802154Radio</moteinterface>
+      <moteinterface>org.contikios.cooja.mspmote.interfaces.MspDebugOutput</moteinterface>
+      <moteinterface>org.contikios.cooja.mspmote.interfaces.MspButton</moteinterface>
       <moteinterface>org.contikios.cooja.mspmote.interfaces.MspDefaultSerial</moteinterface>
       <moteinterface>org.contikios.cooja.mspmote.interfaces.MspLED</moteinterface>
-      <moteinterface>org.contikios.cooja.mspmote.interfaces.MspDebugOutput</moteinterface>
     </motetype>
     <mote>
       <breakpoints />
