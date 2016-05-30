@@ -81,6 +81,7 @@ static struct etimer pt_timer;
 
 static struct uip_udp_conn *client_conn;
 static dtls_context_t *dtls_context;
+/* WARNING: buflen must be the size of buf[]*/
 static char buf[] = "This is a quick test";
 static size_t buflen = 21;
 
@@ -119,30 +120,31 @@ try_send(struct dtls_context_t *ctx, session_t *dst) {
 }
 
 static int
-read_from_peer(struct dtls_context_t *ctx, 
+read_from_peer_client(struct dtls_context_t *ctx, 
 	       session_t *session, uint8 *data, size_t len) {
   size_t i;
+  
+  /* HERE YOU HAS VALID DATA */
+  
   PRINTF("DATA RCV: ");
   for (i = 0; i < len; i++)
     PRINTF("%c", data[i]);
+  PRINTF("\n");
   return 0;
 }
 
 static int
-send_to_peer(struct dtls_context_t *ctx, 
+send_to_peer_client(struct dtls_context_t *ctx, 
 	     session_t *session, uint8 *data, size_t len) {
 
   struct uip_udp_conn *conn = (struct uip_udp_conn *)dtls_get_app_data(ctx);
 
-  /*TESTING: Remove once everything works */
-//   PRINTF("SEND_TO_PEER: ");
-//   PRINT6ADDR(&conn->ripaddr);
-//   PRINTF(":%u\n", uip_ntohs(conn->rport));
-  
+
+   /* TO THELL! This will be more closed to RIOT !*/
   uip_ipaddr_copy(&conn->ripaddr, &session->addr);
   conn->rport = session->port;
 
-//   
+   /* DEBUGGING */
    PRINTF("SEND_TO_PEER: Session: ");
    PRINT6ADDR(&session->addr);
    PRINTF(":%u\n", uip_ntohs(session->port));
@@ -283,8 +285,8 @@ set_connection_address(uip_ipaddr_t *ipaddr)
 void
 init_dtls(session_t *dst) {
   static dtls_handler_t cb = {
-    .write = send_to_peer,
-    .read  = read_from_peer,
+    .write = send_to_peer_client,
+    .read  = read_from_peer_client,
     .event = NULL,
 #ifdef DTLS_PSK
     .get_psk_info = get_psk_info,
@@ -327,7 +329,7 @@ uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0x0200, 0, 0, 3);
   PRINTF(":%d ", UIP_HTONS(client_conn->rport));
   PRINTF("Local port: %d\n", UIP_HTONS(client_conn->lport) );
 
-  dtls_set_log_level(DTLS_LOG_INFO);
+  dtls_set_log_level(DTLS_LOG_NOTICE);
 
   dtls_context = dtls_new_context(client_conn);
   if (dtls_context){
@@ -338,15 +340,14 @@ uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0x0200, 0, 0, 3);
 
 /*---------------------------------------------------------------------------*/
 
-PROCESS(udp_server_process, "UDP server process");
-AUTOSTART_PROCESSES(&udp_server_process);
+PROCESS(udp_client_process, "UDP client process");
+AUTOSTART_PROCESSES(&udp_client_process);
 
-PROCESS_THREAD(udp_server_process, ev, data)
+PROCESS_THREAD(udp_client_process, ev, data)
 {
   static int connected = 0;
   static session_t dst;
   static int iBool = 1;
-
   
   PROCESS_BEGIN();
 
@@ -360,38 +361,57 @@ PROCESS_THREAD(udp_server_process, ev, data)
     PROCESS_EXIT();
   }
 
+  /* 
+   * TESTING: The timer should not be more than 10 seconds
+   * as is the lifetime for any DTLS session. 
+   * HOWEVER, with Cooja I got too many restransmissions 
+   * even with timer greater than 100 seconds. 
+   * 
+   * This should be similar to RIOT: Freeze the client. 
+   * Check if got something and continue (Freeze less than 
+   * 10 seconds otherwise the server will expire the session)
+   * 
+   * HOWEVER, is not happening. PROCESS_WAIT_EVENT_UNTIL
+   * gives a bad performance, and PROCESS_YIELD provokes
+   * A LOT of retransmissions
+   */ 
+  etimer_set(&pt_timer, CLOCK_SECOND*2);
   while(iBool) {  
-	/* 
-	 *NOTE:Something is freezing the client and I'm very sure is the PROCESS_YIELD 
-	 */
-    etimer_set(&pt_timer, CLOCK_SECOND*3);
-    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&pt_timer));
-	
-    if(ev == tcpip_event) {
+
+//  PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&pt_timer));
+	PROCESS_YIELD();
+
+	/*WARNING: PROCESS_WAIT_EVENT_UNTIL do not mix with this */
+	if(etimer_expired(&pt_timer)) {
+      etimer_reset(&pt_timer);
+	}
+
+  if(ev == tcpip_event) {
       dtls_handle_read(dtls_context);
+	  continue; /*We await to have time to transmit. */
     } 
 
+	
     /*
 	 * TESTING: The original example used an serial connection, for my testing
 	 * is a simple text to transmit (or a CoAP command). 
 	 */
     if (buflen) {
       if (connected == 0){
-		  PRINTF(" DEBUG: Client set connection to: ");
+		  PRINTF("DEBUG: Client set connection to: ");
 				PRINT6ADDR(&dst.addr);
 				PRINTF(":%d\n", uip_ntohs(dst.port));
 		connected = dtls_connect(dtls_context, &dst) >= 0;
 		continue; //To remove?
 	  }
-	  
-      try_send(dtls_context, &dst);
-    }
+		try_send(dtls_context, &dst);
+    } /*IF-buflen*/
     else {
-	  PRINTF("Finish\n");
 	  iBool = 0;
 	}
-  }
+  }/*End while-iBool */
   
+  PRINTF("Client Finished!\n");
   /*TODO: Release the resources */
   dtls_free_context(dtls_context);
   connected = 0;
