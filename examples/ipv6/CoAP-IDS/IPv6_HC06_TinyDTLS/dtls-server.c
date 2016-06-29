@@ -42,7 +42,7 @@
 #include "net/ip/uip-debug.h"
 
 /* Used for testing different TinyDTLS versions */
-#if  1
+#if  0
 #include "dtls_debug.h" 
 #else
 #include "debug.h" 
@@ -88,7 +88,7 @@ read_from_peer(struct dtls_context_t *ctx,
     PRINTF("%c", data[i]);
 
   /* echo incoming application data */
-  dtls_write(ctx, session, data, len);
+//   dtls_write(ctx, session, data, len);
   return 0;
 }
 
@@ -187,6 +187,19 @@ verify_ecdsa_key(struct dtls_context_t *ctx,
 }
 #endif /* DTLS_ECC */
 
+/*---------------------------------------------------------------------------*/
+int
+on_event(struct dtls_context_t *ctx, session_t *session, dtls_alert_level_t level,
+              unsigned short code) {
+  if (code == DTLS_EVENT_CONNECTED) {
+//     dtls_connected = 1;
+    PRINTF("DTLS-Server Connected\n");
+  }
+  return 0;
+}
+/*---------------------------------------------------------------------------*/
+
+
 PROCESS(udp_server_process, "UDP server process");
 AUTOSTART_PROCESSES(&udp_server_process);
 /*---------------------------------------------------------------------------*/
@@ -211,7 +224,7 @@ void init_dtls() {
   static dtls_handler_t cb = {
     .write = send_to_peer,
     .read  = read_from_peer,
-    .event = NULL,
+    .event = on_event,
 #ifdef DTLS_PSK
     .get_psk_info = get_psk_info,
 #endif /* DTLS_PSK */

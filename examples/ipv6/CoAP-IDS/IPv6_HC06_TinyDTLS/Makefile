@@ -44,8 +44,13 @@ connect-minimal:
 #       Ex: "make all TARGET=xxx"  should be enough
 ########################################################################
 APPS_NAME=tinydtls
-APPS_URL=git://github.com/rfuentess/TinyDTLS.git
-APPS_VERSION=Contiki
+
+# APPS_URL=https://github.com/rfuentess/TinyDTLS.git
+# APPS_VERSION=Contiki
+
+APPS_URL=https://github.com/cetic/tinydtls.git
+APPS_VERSION=6lbr
+
 APPS_DIR=$(CONTIKI)/apps/$(APPS_NAME)
 
 TinyDTLS-git: 

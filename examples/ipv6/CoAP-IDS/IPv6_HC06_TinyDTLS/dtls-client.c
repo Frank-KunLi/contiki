@@ -51,7 +51,7 @@
 #endif
 
 /* Used for testing different TinyDTLS versions */
-#if  1
+#if  0
 #include "dtls_debug.h" 
 #else
 #include "debug.h" 
@@ -82,8 +82,10 @@ static struct etimer pt_timer;
 static struct uip_udp_conn *client_conn;
 static dtls_context_t *dtls_context;
 /* WARNING: buflen must be the size of buf[]*/
-static char buf[] = "This is a quick test";
+static char buf[] = "This is a quick test\0";
 static size_t buflen = 21;
+
+static uint8_t connected = 0;
 
 static const unsigned char ecdsa_priv_key[] = {
 			0x41, 0xC1, 0xCB, 0x6B, 0x51, 0x24, 0x7A, 0x14,
@@ -147,8 +149,10 @@ send_to_peer_client(struct dtls_context_t *ctx,
    /* DEBUGGING */
    PRINTF("SEND_TO_PEER: Session: ");
    PRINT6ADDR(&session->addr);
-   PRINTF(":%u\n", uip_ntohs(session->port));
-
+   PRINTF(" - ripaddr: ");
+   PRINT6ADDR(&conn->ripaddr);
+   PRINTF(" - PORT: %u\n", uip_ntohs(session->port));
+   
   uip_udp_packet_send(conn, data, len);
 
   /* Restore server connection to allow data from any node */
@@ -254,6 +258,29 @@ dtls_handle_read(dtls_context_t *ctx) {
     dtls_handle_message(ctx, &session, uip_appdata, uip_datalen());
   }
 }
+
+/*---------------------------------------------------------------------------*/
+int
+on_event(struct dtls_context_t *ctx, session_t *session, dtls_alert_level_t level,
+              unsigned short code) {
+  if (code == DTLS_EVENT_CONNECTED) {
+#if WITH_ENERGY_EST_DTLS_HS_C
+  cpu_time = energest_type_time(ENERGEST_TYPE_CPU) - cpu_start_time;
+  lpm_time = energest_type_time(ENERGEST_TYPE_LPM) - lpm_start_time;
+  tx_time = energest_type_time(ENERGEST_TYPE_TRANSMIT) - tx_start_time;
+  rx_time = energest_type_time(ENERGEST_TYPE_LISTEN) - rx_start_time;
+  printf("Energy (DTLS_HS_C_0) cpu %lu lpm %lu tx %lu rx %lu\n",
+          cpu_time,
+          lpm_time,
+          tx_time,
+          rx_time);
+#endif /* WITH_ENERGY_EST_DTLS_HS_C */
+    connected = 1;
+    PRINTF("DTLS-Client Connected\n");
+  }
+  return 0;
+}
+
 /*---------------------------------------------------------------------------*/
 static void
 print_local_addresses(void)
@@ -287,7 +314,7 @@ init_dtls(session_t *dst) {
   static dtls_handler_t cb = {
     .write = send_to_peer_client,
     .read  = read_from_peer_client,
-    .event = NULL,
+    .event = on_event,
 #ifdef DTLS_PSK
     .get_psk_info = get_psk_info,
 #endif /* DTLS_PSK */
@@ -345,7 +372,7 @@ AUTOSTART_PROCESSES(&udp_client_process);
 
 PROCESS_THREAD(udp_client_process, ev, data)
 {
-  static int connected = 0;
+  
   static session_t dst;
   static int iBool = 1;
   
@@ -377,38 +404,40 @@ PROCESS_THREAD(udp_client_process, ev, data)
    */ 
   etimer_set(&pt_timer, CLOCK_SECOND*2);
   while(iBool) {  
-
-//  PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&pt_timer));
-	PROCESS_YIELD();
-
-	/*WARNING: PROCESS_WAIT_EVENT_UNTIL do not mix with this */
-	if(etimer_expired(&pt_timer)) {
-      etimer_reset(&pt_timer);
-	}
-
-  if(ev == tcpip_event) {
-      dtls_handle_read(dtls_context);
-	  continue; /*We await to have time to transmit. */
-    } 
-
-	
-    /*
-	 * TESTING: The original example used an serial connection, for my testing
-	 * is a simple text to transmit (or a CoAP command). 
-	 */
-    if (buflen) {
-      if (connected == 0){
-		  PRINTF("DEBUG: Client set connection to: ");
-				PRINT6ADDR(&dst.addr);
-				PRINTF(":%d\n", uip_ntohs(dst.port));
-		connected = dtls_connect(dtls_context, &dst) >= 0;
-		continue; //To remove?
+	  
+	  //  PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&pt_timer));
+	  PROCESS_YIELD();
+	  
+	  /*WARNING: PROCESS_WAIT_EVENT_UNTIL do not mix with this */
+	  if(etimer_expired(&pt_timer)) {
+		  etimer_reset(&pt_timer);
 	  }
-		try_send(dtls_context, &dst);
-    } /*IF-buflen*/
-    else {
-	  iBool = 0;
-	}
+	  
+	  if(ev == tcpip_event) {
+		  dtls_handle_read(dtls_context);
+	  } else if (ev == PROCESS_EVENT_TIMER) {
+		  
+		  
+		  /*
+		   * TESTING: The original example used an serial connection, for my testing
+		   * is a simple text to transmit (or a CoAP command). 
+		   */
+		  if (buflen) {
+			  if (connected == 0){
+				  PRINTF("DEBUG: Client set connection to: ");
+				  PRINT6ADDR(&dst.addr);
+				  PRINTF(":%d\n", uip_ntohs(dst.port));
+				  dtls_connect(dtls_context, &dst) >= 0;
+			  } else
+				  try_send(dtls_context, &dst);
+			  
+			  etimer_set(&pt_timer, CLOCK_SECOND * 2);
+			  
+		  } /*IF-buflen*/
+		  else { /*TODO Populated again the buffer (And finish DTLS session) */
+			  iBool = 0;
+		  }
+	  }/*IF-PROCESS_EVENT_TIMER */
   }/*End while-iBool */
   
   PRINTF("Client Finished!\n");
