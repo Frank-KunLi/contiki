@@ -35,6 +35,12 @@
  *      Raul Armando Fuentes Samaniego <fuentess@telecom...>
  */
 
+//Just a fast way to disable this configuration and use default one.
+// #ifndef PROJECT_6COAPS_TINYDTLS_CONF_H_
+// #define PROJECT_6COAPS_TINYDTLS_CONF_H_
+// #endif 
+
+
 #ifndef PROJECT_6COAPS_TINYDTLS_CONF_H_
 #define PROJECT_6COAPS_TINYDTLS_CONF_H_
 
@@ -45,41 +51,30 @@
  *  And the default (contikimac)  RDC driver (not stated here) 
  */
 
-//#undef NETSTACK_CONF_RADIO
-//#define NETSTACK_CONF_RADIO   cc2420_driver
-
 #undef NETSTACK_CONF_FRAMER
 #define NETSTACK_CONF_FRAMER  framer_802154
 
 
-/* 
- * Contikimac requires an small tresshold for the MTU. 
- * Original paper say 23 bytes, but the source-code for Contiki 3.x has 63
- * If the tresshold is not passed there will not be compression WHICH  
- * is bad because force the nodes to have IPv6 and 6LoWPAN properties.
- * Plus for the IDS will be getting hard time with  both  protocols
- * IEEE 802.15.4  seem to have 17.5 bytes + Payload
- * 6LoWPAN header is 5-6 Bytes + Payload
- * UDP 8 bytes + app data || 6UDP  6 bytes + data
- * 
- * The tresshold will be 23 because should be enough for the app 
- * Though this force do not display TCP and check the ICMPv6 tresshold.
- * 
- * NOTE: For this project the 6BR router is compiled from their own example folder 
- * Thus is not using this file for their own configuration.
- */
-// # undef SICSLOWPAN_CONF_COMPRESSION_THRESHOLD
-// # define SICSLOWPAN_CONF_COMPRESSION_THRESHOLD     23
+/* TODO: Testing those parameters */
+// #undef NETSTACK_CONF_MAC
+// #define NETSTACK_CONF_MAC     csma_driver
+
+/* This will disable the RPL protocol. (Not wished but useful for testing)  */
+// #undef UIP_CONF_IPV6_RPL
+// #define UIP_CONF_IPV6_RPL 0
+
+/* UIP_CONF_ND6_SEND_NA enables standard IPv6 Neighbor Discovery Protocol.
+   This is unneeded when RPL is used. Disable to save ROM and a little RAM. 
+   NOTE: Is a lie! The nodes are unable to connect if its disabled.   
+*/
+// #undef UIP_CONF_ND6_SEND_NA
+// #define UIP_CONF_ND6_SEND_NA 1
 
 
-// This enable 6LoWPAN + 6UDP (Or Contiki equivalent)
+/*  NHC (compression for UDP). NOTE: There are 4 possible configurations.  */
 #undef SICSLOWPAN_CONF_COMPRESSION
 #define SICSLOWPAN_CONF_COMPRESSION     SICSLOWPAN_COMPRESSION_HC06 
 
-/* 
- * The following are from the CoAP examples
- * No he tomado todos, solo lo que creo que son importantes para el experimento.
- */
 
 /* Disabling TCP on CoAP nodes. */
 #undef UIP_CONF_TCP
@@ -87,24 +82,17 @@
 
 
 /* Increase rpl-border-router IP-buffer when using more than 64. */
-//RAFS TODO: Indagar que jodido hace esto 
-#undef REST_MAX_CHUNK_SIZE
-#define REST_MAX_CHUNK_SIZE            48
+// #undef REST_MAX_CHUNK_SIZE
+// #define REST_MAX_CHUNK_SIZE            48
 
 
+/* Hardware of the mote  */
+/* NOTHING: This is handled by each mote's configuration. */
+
+/* CoAP Configuration */
 /* Multiplies with chunk size, be aware of memory constraints. */
 #undef COAP_MAX_OPEN_TRANSACTIONS
 #define COAP_MAX_OPEN_TRANSACTIONS     4
-
-
-/* Pataladas de ahogado ante poca RAM */
-
-#undef PLATFORM_HAS_LEDS
-#define PLATFORM_HAS_LEDS 0
-
-#undef PLATFORM_HAS_LIGHT
-#define PLATFORM_HAS_LIGHT 0
-
 
 /* Filtering .well-known/core per query can be disabled to save space.
 #undef COAP_LINK_FORMAT_FILTERING
@@ -112,5 +100,10 @@
 #undef COAP_PROXY_OPTION_PROCESSING
 #define COAP_PROXY_OPTION_PROCESSING   0  */
 
+/* DTLS configuration  */
+
+/** Number of message retransmissions. (Default 7) */
+#undef DTLS_DEFAULT_MAX_RETRANSMIT
+#define DTLS_DEFAULT_MAX_RETRANSMIT 7
 
 #endif

@@ -5,9 +5,6 @@ CONTIKI=../../../..
 
 CFLAGS += -DPROJECT_CONF_H=\"project-conf.h\"
 
-
-
-
 # automatically build RESTful resources
 # RAFS: Original code 
 REST_RESOURCES_DIR = ./resources
@@ -24,23 +21,13 @@ endif
 PROJECTDIRS += $(REST_RESOURCES_DIR)
 PROJECT_SOURCEFILES += $(REST_RESOURCES_FILES)
 
-# linker optimizations
-# RAFS: Original code 
-SMALL=1
 
 # REST Engine shall use Erbium CoAP implementation
-#APPS += coap-dtls
 APPS += rest-engine
-APPS += tinydtls/aes tinydtls/sha2 tinydtls
-#APPS +=  tinydtls/ecc
+APPS += tinydtls/aes tinydtls/sha2 tinydtls/ecc tinydtls 
 APPS += er-coaps
 
 
-
-# optional rules to get assembly
-# RAFS: Original code (NOTE: Requires analyze)
-#CUSTOM_RULE_C_TO_OBJECTDIR_O = 1
-#CUSTOM_RULE_S_TO_OBJECTDIR_O = 1
 
 CONTIKI_WITH_IPV6 = 1
 include $(CONTIKI)/Makefile.include
@@ -82,6 +69,7 @@ connect-minimal:
 APPS_NAME=tinydtls
 APPS_URL=git://github.com/rfuentess/TinyDTLS.git
 APPS_VERSION=Contiki
+
 APPS_DIR=$(CONTIKI)/apps/$(APPS_NAME)
 
 TinyDTLS-git: 
