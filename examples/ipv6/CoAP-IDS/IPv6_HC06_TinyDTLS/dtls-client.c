@@ -51,7 +51,7 @@
 #endif
 
 /* Used for testing different TinyDTLS versions */
-#if  0
+#if  1
 #include "dtls_debug.h" 
 #else
 #include "debug.h" 
@@ -75,6 +75,8 @@
 #define UIP_UDP_BUF  ((struct uip_udp_hdr *)&uip_buf[UIP_LLIPH_LEN])
 
 #define MAX_PAYLOAD_LEN 120
+
+#define REMOTE_PORT     UIP_HTONS(20220)
 
 /* Odly, the original Contiki's examples put this as global.  */
 static struct etimer pt_timer;

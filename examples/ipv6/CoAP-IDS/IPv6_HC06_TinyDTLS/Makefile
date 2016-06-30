@@ -12,13 +12,9 @@ APPS += tinydtls/aes tinydtls/sha2 tinydtls/ecc tinydtls
 #APPS += tinydtls/aes  tinydtls/ecc tinydtls
 
 CONTIKI_WITH_IPV6 = 1
+UIP_CONF_RPL = 1
 
-
-SMALL=1
-
-UIP_CONF_IPV6=1
-
-# To try to optimize the compilation (originally from TinyDTLS).
+# To try to optimize the compilation (original from TinyDTLS).
 CFLAGS += -ffunction-sections
 LDFLAGS += -Wl,--gc-sections,--undefined=_reset_vector__,--undefined=InterruptVectors,--undefined=_copy_data_init__,--undefined=_clear_bss_init__,--undefined=_end_of_init__
 
@@ -45,11 +41,13 @@ connect-minimal:
 ########################################################################
 APPS_NAME=tinydtls
 
-# APPS_URL=https://github.com/rfuentess/TinyDTLS.git
-# APPS_VERSION=Contiki
+ APPS_URL=https://github.com/rfuentess/TinyDTLS.git
+ APPS_VERSION=Contiki
 
-APPS_URL=https://github.com/cetic/tinydtls.git
-APPS_VERSION=6lbr
+# This enable another fork (used succesfully) but require add support to the mote.
+# Similar to this: https://github.com/rfuentess/TinyDTLS/tree/Contiki/platform-specific
+# APPS_URL=https://github.com/cetic/tinydtls.git
+# APPS_VERSION=6lbr
 
 APPS_DIR=$(CONTIKI)/apps/$(APPS_NAME)
 

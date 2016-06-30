@@ -42,7 +42,7 @@
 #include "net/ip/uip-debug.h"
 
 /* Used for testing different TinyDTLS versions */
-#if  0
+#if  1
 #include "dtls_debug.h" 
 #else
 #include "debug.h" 
@@ -88,7 +88,7 @@ read_from_peer(struct dtls_context_t *ctx,
     PRINTF("%c", data[i]);
 
   /* echo incoming application data */
-//   dtls_write(ctx, session, data, len);
+   dtls_write(ctx, session, data, len);
   return 0;
 }
 
