@@ -61,7 +61,7 @@
 #include "tinydtls.h"
 
 /* Used for testing different TinyDTLS versions */
-#if 1
+#if 0
 #include "dtls_debug.h" 
 #else
 #include "debug.h" 
@@ -69,23 +69,8 @@
 
 #include "net/ip/uip-debug.h"
 
-#ifdef ENABLE_POWERTRACE
-#include "powertrace.h"
-#endif
 
-#ifdef DEBUG 
-#include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
-#define PRINT6ADDR(addr) PRINTF("[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
-#define PRINTLLADDR(lladdr) PRINTF("[%02x:%02x:%02x:%02x:%02x:%02x]", (lladdr)->addr[0], (lladdr)->addr[1], (lladdr)->addr[2], (lladdr)->addr[3], (lladdr)->addr[4], (lladdr)->addr[5])
 
-#else
-
-#define PRINTF(...)
-#define PRINT6ADDR(addr)
-#define PRINTLLADDR(addr)
-
-#endif
 
 /*
  * Resources to be activated need to be imported through the extern keyword.
@@ -358,6 +343,33 @@ set_global_address(void)
 }
 /*---------------------------------------------------------------------------*/
 
+PROCESS_NAME(coap_server);
+PROCESS(coap_server, "CoAP Server Example");
+PROCESS_THREAD(coap_server, ev, data)
+{
+  PROCESS_BEGIN();
+  PRINTF("CoAP Server started \n");
+  /* Initialize the REST engine. */
+  rest_init_engine();
+
+  /* Activate the application-specific resources. */
+ #if REST_RES_HELLO
+  rest_activate_resource(&resource_helloworld);
+#endif /* REST_RES_HELLO */
+
+#if defined (PLATFORM_HAS_LEDS)
+#if REST_RES_TOGGLE
+  rest_activate_resource(&resource_toggle);
+#endif /* REST_RES_TOGGLE */
+#endif /* PLATFORM_HAS_LEDS */
+
+
+  while(1) {
+    PROCESS_YIELD();
+  }
+  PROCESS_END();
+}
+
 
 PROCESS(coaps_server_example, "CoAPS Server Example"); 
 AUTOSTART_PROCESSES(&coaps_server_example);
@@ -373,11 +385,6 @@ PROCESS_THREAD(coaps_server_example, ev, data)
   dtls_init();
   init_dtls();
 
- 
-  /* TODO: This come from TinyDTLS however is vital for power tracing with Cooja */
-#ifdef ENABLE_POWERTRACE
-  powertrace_start(CLOCK_SECOND * 2); 
-#endif  
   
 #ifdef RF_CHANNEL
   PRINTF("RF channel: %u\n", RF_CHANNEL);
@@ -423,6 +430,7 @@ PROCESS_THREAD(coaps_server_example, ev, data)
 #endif
   
   
+  process_start(&coap_server, NULL);
   coap_register_as_transaction_handler();
 
 
@@ -435,7 +443,7 @@ PROCESS_THREAD(coaps_server_example, ev, data)
     if(ev == tcpip_event) {
 	 /*TESTING: Probably dtls_handle_read should not be invoked here.*/	
       dtls_handle_read(dtls_context);
-	  PRINTF("Packet delivered!\n");
+	 
 #if PLATFORM_HAS_BUTTON
     }else if (ev == sensors_event && data == &button_sensor){
 		PRINTF("*******BUTTON*******\n");

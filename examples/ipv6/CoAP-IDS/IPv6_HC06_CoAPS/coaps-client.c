@@ -65,29 +65,13 @@
 #include "tinydtls.h"
 
 /* Used for testing different TinyDTLS versions */
-#if 1
+#if 0
 #include "dtls_debug.h" 
 #else
 #include "debug.h" 
 #endif
 	
 
-#ifdef DEBUG 
-#include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
-#define PRINT6ADDR(addr) PRINTF("[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
-#define PRINTLLADDR(lladdr) PRINTF("[%02x:%02x:%02x:%02x:%02x:%02x]", (lladdr)->addr[0], (lladdr)->addr[1], (lladdr)->addr[2], (lladdr)->addr[3], (lladdr)->addr[4], (lladdr)->addr[5])
-
-#else
-
-#define PRINTF(...)
-#define PRINT6ADDR(addr)
-#define PRINTLLADDR(addr)
-
-#endif
-
-	
-	
 
 //Definidos en contiki/core/*udp*
 //#define LOCAL_PORT      UIP_HTONS(COAP_DEFAULT_PORT + 1)
@@ -121,7 +105,7 @@ uip_ipaddr_t server_ipaddr;
 static struct uip_udp_conn *client_conn;
 static dtls_context_t *dtls_context_client;
 
-
+static session_t dst_process; 
 
 static uint8_t dtls_connected = 0;
 
@@ -261,7 +245,10 @@ client_chunk_handler(void *response)
   const uint8_t *chunk;
   int len = coap_get_payload(response, &chunk);
 
-  printf("|%.*s", len, (char *)chunk);
+  if (len > 0)
+    PRINTF("|(%u Byte payload)%.*s", len, len, (char *)chunk);
+  else
+    PRINTF("| no payload\n");
 }
 
 
@@ -277,6 +264,7 @@ read_from_peer_client(struct dtls_context_t *ctx,
   coap_receive(ctx, session);
   return 0;
 }
+
 static int
 send_to_peer_client(struct dtls_context_t *ctx, 
 	     session_t *session, uint8 *data, size_t len) {
@@ -433,15 +421,45 @@ init_dtls_client(session_t *dst) {
 }
 /*---------------------------------------------------------------------------*/
 
-/* NOTE: One single process to run everything. 
- * Lithe's code uses 2 process and is only able to work in that way. 
- * However, with me the double process give problems (the 6 flights are never
- * completed).  
- * But with the single process and the cipher suite PSK  the client got stuck 
- * after receiving the DTLS App Data datagram, so this is reflexed as the 
- * client stop communicating to the server (but the packets has been generated
- * and tinydtls' debugs say the process has been completed). 
+/* This is copy/paste from Lithe
+ * I personally don't like this approach. 
+ * The  commit 59c9a6f0085a9195a34781b5d04f67be7e1f543c Still have my 
+ * aproach.
  */
+PROCESS_NAME(coap_thread);
+PROCESS(coap_thread, "CoAP Thread");
+PROCESS_THREAD(coap_thread, ev, data)
+{
+  PROCESS_BEGIN();
+  PRINTF("Thread for CoAP running \n");
+  static struct etimer app_et;
+
+  static coap_packet_t request[1]; /* This way the packet can be treated as pointer as usual. */
+
+  etimer_set(&app_et, 2 * CLOCK_SECOND);
+
+  while(1) {
+    PROCESS_YIELD();
+    if (etimer_expired(&app_et) && dtls_connected) {
+      coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
+      coap_set_header_uri_path(request, service_urls[uri_switch]);
+
+      PRINTF("--Requesting %s--\n", service_urls[uri_switch]);
+
+      COAP_BLOCKING_REQUEST(&(dst_process.addr), REMOTE_PORT, request, client_chunk_handler, dtls_context_client, &dst_process);
+
+      PRINTF("\n--Done--\n");
+
+      uri_switch = (uri_switch+1) % NUMBER_OF_URLS;
+      etimer_reset(&app_et);
+    } else {
+      etimer_reset(&app_et);
+    }
+  }
+
+  PROCESS_END();
+}
+
 
 
 PROCESS(coaps_client, "CoAPS Client Example");
@@ -453,7 +471,7 @@ PROCESS_THREAD(coaps_client, ev, data)
 	static int connected = 0;
 	static struct etimer app_et;
 	static coap_packet_t request[1]; 
-	static session_t dst_process; 
+	
 	
 	PROCESS_BEGIN();
 	
@@ -491,57 +509,19 @@ PROCESS_THREAD(coaps_client, ev, data)
 	 *		   (probably 3) due the fact TinyDTLs is already trying to connect
 	 *		   from the start. The TOGGLE_INTERVAL value will have a impact too.
 	 */
-	// connected = dtls_connect(dtls_context_client, &dst_process) >= 0;
-	
-	etimer_set(&app_et, CLOCK_SECOND * TOGGLE_INTERVAL);
+	 connected = dtls_connect(dtls_context_client, &dst_process) >= 0;
+	process_start(&coap_thread, NULL);
+// 	etimer_set(&app_et, CLOCK_SECOND * TOGGLE_INTERVAL);
+
 	while(1) {
 		PROCESS_YIELD();
 		if(ev == tcpip_event) {
 			
 			dtls_handle_read_client(dtls_context_client);
-		} else if (ev == PROCESS_EVENT_TIMER) {
-			
-			//TODO: Uh... what is working COAP_BLOCKING_REQUEST or 
-			// connected ? 
-			//if	(etimer_expired(&app_et) && dtls_connected) {
-			if	( dtls_connected){
-				coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
-				coap_set_header_uri_path(request, service_urls[uri_switch]);
-				
-				PRINTF("--Requesting %s--\n", service_urls[uri_switch]);
-				
-				
-				COAP_BLOCKING_REQUEST(&(dst_process.addr), &(dst_process.port), request, 
-									  client_chunk_handler, dtls_context_client, &dst_process);
-				
-				PRINTF("\n--Done--\n");
-				
-				uri_switch = (uri_switch+1) % NUMBER_OF_URLS;
-				etimer_reset(&app_et);
-			}
-			else if (etimer_expired(&app_et)) { 
-				etimer_reset(&app_et);
-				
-			}
-			
-			//If the previous fail we need to try a new connection
-			if (!connected) {
-				PRINTF(" DEBUG: Client set connection to: ");
-				PRINT6ADDR(&dst_process.addr);
-				PRINTF(":%d\n", uip_ntohs(dst_process.port));
-				connected = dtls_connect(dtls_context_client, &dst_process) >= 0;
-				etimer_set(&app_et, CLOCK_SECOND * TOGGLE_INTERVAL);
-				continue;
-			}
-			/* retransmissions are handled here */
-			coap_check_transactions();
-			
 		}
+
+		
 	}
 	
 	PROCESS_END();
 }
-
-/*---------------------------------------------------------------------------*/
-
-
